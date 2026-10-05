@@ -1,4 +1,5 @@
 #pragma once
+#include <PartClasses.h>
 #include <ColorDetector.h>
 
 // Confirm each profile only after the corresponding physical check.
@@ -12,7 +13,7 @@ constexpr int CAMERA_UART_TX = 13; // Project KiCad: camera TX13 -> controller R
 
 // Fixed OV2640 settings: starting values, not measured values. CAPTURE and
 // recognition use the SAME settings. Recalibrate after changing these.
-constexpr int SENSOR_EXPOSURE = 80; // 0..1200
+constexpr int SENSOR_EXPOSURE = 70; // 0..1200
 constexpr int SENSOR_GAIN = 0;       // 0..30
 constexpr int SENSOR_WB_MODE = 1;    // 1 sunny, 2 cloudy, 3 office, 4 home
 constexpr bool SENSOR_HMIRROR = false;
@@ -21,8 +22,8 @@ constexpr bool SENSOR_VFLIP = false;
 // Red and blue only. Keep thresholds tuned from the actual parts and lighting.
 // Class 2 (green) is disabled; overlapping ranges are rejected as unknown.
 const sorter::ColorRange COLOR_RANGES[] = {
-  {sorter::kRedClassId, 250, 255, 0, 200, 0, 239, 60}, // red -> first bin
-  {sorter::kBlueClassId, 100, 189, 100, 190, 190, 255, 50} // blue -> second bin
+  {sorter::kRedClassId, 200, 255, 0, 200, 0, 239, 60}, // red -> first bin
+  {sorter::kBlueClassId, 100, 210, 100, 210, 175, 255, 50} // blue -> second bin
 };
 static_assert(sizeof(COLOR_RANGES)/sizeof(COLOR_RANGES[0]) == sorter::kColorCount,
               "The sorter must have exactly two color ranges");
