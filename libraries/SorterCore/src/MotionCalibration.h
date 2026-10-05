@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <math.h>
+#include "PartClasses.h"
 
 namespace sorter {
 
@@ -24,7 +25,8 @@ struct MotionCalibration {
   uint16_t pulseMin[4], pulseMax[4], openUs, closedUs;
   uint16_t maxRateUsPerSecond[4];
   uint16_t maxAccelerationUsPerSecond2[4];
-  CalibratedPose parkOpen, hubOpen, binHighOpen[3], binDropOpen[3];
+  // Bin 0: red (class 1); bin 1: blue (class 3).
+  CalibratedPose parkOpen, hubOpen, binHighOpen[kColorCount], binDropOpen[kColorCount];
 };
 
 inline bool poseWithinLimits(const JointPose& p, const MotionCalibration& c) {
@@ -79,7 +81,7 @@ inline bool calibrationValid(const MotionCalibration& c, bool requireMeasured) {
   }
   if (!knownPoseValid(c.parkOpen, c, requireMeasured) ||
       !knownPoseValid(c.hubOpen, c, requireMeasured)) return false;
-  for (size_t i = 0; i < 3; ++i)
+  for (size_t i = 0; i < kColorCount; ++i)
     if (!knownPoseValid(c.binHighOpen[i], c, requireMeasured) ||
         !knownPoseValid(c.binDropOpen[i], c, requireMeasured) ||
         c.binHighOpen[i].tip.z10 <= c.binDropOpen[i].tip.z10) return false;
@@ -125,9 +127,10 @@ inline MotionCalibration exampleVirtualCalibration() {
   for (size_t i = 0; i < 4; ++i) { c.grid[i].lowOpen = low[i]; c.grid[i].highOpen = high[i]; }
   c.parkOpen = {{{1500,1300,1500,1350}}, {0,400,600}, false};
   c.hubOpen = {{{1500,1400,1500,1350}}, {0,700,500}, false};
-  for (size_t i = 0; i < 3; ++i) {
-    c.binHighOpen[i] = {{{uint16_t(1100 + 400*i),1400,1550,1350}},
-                        {int32_t(-800 + int32_t(i)*800),500,500}, false};
+  for (size_t i = 0; i < kColorCount; ++i) {
+    // Keep the former red and blue demo positions; omit the middle green bin.
+    c.binHighOpen[i] = {{{uint16_t(1100 + 800*i),1400,1550,1350}},
+                        {int32_t(-800 + int32_t(i)*1600),500,500}, false};
     c.binDropOpen[i] = c.binHighOpen[i];
     c.binDropOpen[i].joints.us[1] = 1500; c.binDropOpen[i].tip.z10 = 300;
   }

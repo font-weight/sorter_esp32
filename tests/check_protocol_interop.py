@@ -7,7 +7,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tools.protocol import (Packet, Scene, Detection, ProtocolError, crc16,
-                            encode_packet, decode_packet, encode_scene)
+                            encode_packet, decode_packet, encode_scene, SUPPORTED_CLASSES)
 
 
 def frame(body):
@@ -25,7 +25,7 @@ def main():
         cases.append(encode_packet(Packet("Q", session, seq, str(cal))))
         cases.append(encode_packet(Packet("E", session, seq, rng.choice(("BUSY", "STALE", "CALIBRATION_MISMATCH")))))
         scene = Scene(rng.randint(1, 2**32-1), cal, tuple(
-            Detection(rng.randint(1, 3), rng.randint(-2**31, 2**31-1),
+            Detection(rng.choice(SUPPORTED_CLASSES), rng.randint(-2**31, 2**31-1),
                       rng.randint(-2**31, 2**31-1), rng.randint(1, 2**32-1))
             for _ in range(rng.randint(0, 8))))
         cases.append(encode_packet(Packet("D", session, seq, encode_scene(scene))))
@@ -37,6 +37,7 @@ def main():
         cases.append(bytes(corrupt))
     bodies = [b"1|Q|00001|00002|00003", b"1|Q|1|1|4294967296", b"1|Q|1|1|-1",
               b"1|D|1|1|1,2,1;1,-0,0001,0005", b"1|D|1|1|1,2,1;4,0,0,1",
+              b"1|D|1|1|1,2,1;2,0,0,1", b"1|D|1|1|1,2,1;65537,0,0,1",
               b"1|D|1|1|1,2,0;", b"1|D|1|1|1,2,1;1,-2147483649,0,1",
               b"1|E|1|1|"+b"A"*32, b"1|E|1|1|"+b"A"*33,
               b"1|Q|1|1|"+b"0"*399+b"1", b"1|Q|1|1|"+b"0"*400+b"1",

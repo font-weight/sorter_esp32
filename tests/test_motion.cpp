@@ -58,7 +58,7 @@ void fullyMeasured(MotionCalibration& c) {
   c.geometryConfirmed = c.routesVerified = c.parkSupported = true;
   for (unsigned i = 0; i < 4; ++i) c.grid[i].measuredLow = c.grid[i].measuredHigh = true;
   c.parkOpen.measured = c.hubOpen.measured = true;
-  for (unsigned i = 0; i < 3; ++i) c.binHighOpen[i].measured = c.binDropOpen[i].measured = true;
+  for (unsigned i = 0; i < kColorCount; ++i) c.binHighOpen[i].measured = c.binDropOpen[i].measured = true;
 }
 
 void testCalibration() {
@@ -145,13 +145,13 @@ void testOneCompleteCycleAndBounds() {
   }
 }
 void testAllBinsAndGridCorners() {
-  for (uint8_t cls = 1; cls <= 3; ++cls) for (unsigned corner = 0; corner < 4; ++corner) {
+  for (uint8_t cls : kColorClassIds) for (unsigned corner = 0; corner < 4; ++corner) {
     Rig r; r.arm(); r.until(MotionState::WaitScene);
     assert(r.scene(one(cls,(corner&1)?300:-300,(corner&2)?1200:800)));
     r.until(MotionState::WaitScene);
     bool dropFound = false;
     for (const auto& w : r.io.writes) {
-      const JointPose& p = r.c.binDropOpen[cls-1].joints;
+      const JointPose& p = r.c.binDropOpen[classBinIndex(cls)].joints;
       if (memcmp(&p,&w.pose,sizeof(p)) == 0) dropFound = true;
     }
     assert(dropFound); assert(r.scene(empty())); assert(r.m.state() == MotionState::Done);
@@ -173,7 +173,7 @@ void testNoProgressAndAttemptLimit() {
   r.until(MotionState::WaitScene); assert(!r.scene(one()));
   assert(r.m.error() == MotionError::NoProgress && r.m.attempts() == 2);
   Rig x; x.s.maxAttempts = 1; x.arm(); x.until(MotionState::WaitScene); assert(x.scene(one()));
-  x.until(MotionState::WaitScene); assert(!x.scene(one(2,200,1100)));
+  x.until(MotionState::WaitScene); assert(!x.scene(one(3,200,1100)));
   assert(x.m.error() == MotionError::BatchLimit);
 }
 void testPauseAndStaleCapture() {
@@ -226,6 +226,11 @@ void testMalformedAndUnreachable() {
   assert(x.m.error() == MotionError::NoReachableObject);
   Rig y; y.arm(); y.until(MotionState::WaitScene); s = one(7);
   assert(!y.scene(s)); assert(y.m.error() == MotionError::MalformedScene);
+  Rig green; green.arm(); green.until(MotionState::WaitScene);
+  const size_t greenWrites = green.io.writes.size();
+  assert(!green.scene(one(2)));
+  assert(green.m.error() == MotionError::MalformedScene && green.m.attempts() == 0);
+  assert(green.io.writes.size() == greenWrites);
   Rig z; z.arm(); z.until(MotionState::WaitScene);
   assert(!z.m.receiveError(z.m.session()+1,z.m.sequence()));
   assert(z.m.receiveError(z.m.session(),z.m.sequence())); assert(z.m.error() == MotionError::CameraError);
@@ -236,6 +241,8 @@ void testWrapAround() {
   assert(r.m.state() == MotionState::Done);
 }
 int main() {
+  assert(kColorCount == 2 && classBinIndex(1) == 0 && classBinIndex(3) == 1);
+  assert(!isSupportedClass(2) && classBinIndex(2) == 255);
   testCalibration(); testNoAutomaticOutputs(); testHardwareGates(); testRetryAndTimeout();
   testLateReplyIsNotConsumed();
   testOneCompleteCycleAndBounds(); testAllBinsAndGridCorners(); testCameraRestartAndMismatches();

@@ -1,9 +1,7 @@
 #pragma once
-#include <Arduino.h>
 #include <ColorDetector.h>
 
-// All are intentionally false: actual board, wiring, lighting and parts are
-// unavailable. Change only after the corresponding physical check.
+// Confirm each profile only after the corresponding physical check.
 constexpr bool CAMERA_PROFILE_CONFIRMED = true;
 constexpr bool CAMERA_UART_PINS_CONFIRMED = false;
 constexpr bool VISION_CONFIG_CONFIRMED = false;
@@ -20,13 +18,14 @@ constexpr int SENSOR_WB_MODE = 1;    // 1 sunny, 2 cloudy, 3 office, 4 home
 constexpr bool SENSOR_HMIRROR = false;
 constexpr bool SENSOR_VFLIP = false;
 
-// Teaching examples only. Adjust from recorded images of actual parts and
-// background under the final illumination; overlap is rejected as unknown.
+// Red and blue only. Keep thresholds tuned from the actual parts and lighting.
+// Class 2 (green) is disabled; overlapping ranges are rejected as unknown.
 const sorter::ColorRange COLOR_RANGES[] = {
-  {1, 250, 255, 0, 200, 0, 239, 60}, // red
-  {2, 0, 206, 140, 255, 0, 222, 45}, // green
-  {3, 100, 189, 100, 190, 190, 255, 50}  // blue
+  {sorter::kRedClassId, 250, 255, 0, 200, 0, 239, 60}, // red -> first bin
+  {sorter::kBlueClassId, 100, 189, 100, 190, 190, 255, 50} // blue -> second bin
 };
+static_assert(sizeof(COLOR_RANGES)/sizeof(COLOR_RANGES[0]) == sorter::kColorCount,
+              "The sorter must have exactly two color ranges");
 const sorter::DetectorConfig DETECTOR_CONFIG = {
   COLOR_RANGES, sizeof(COLOR_RANGES)/sizeof(COLOR_RANGES[0]),
   {8, 8, 312, 232}, // half-open ROI in 320x240 frame; set to your tray

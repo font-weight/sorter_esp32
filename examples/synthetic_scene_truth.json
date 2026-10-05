@@ -4,6 +4,10 @@
   "width": 320,
   "height": 240,
   "format": "RGB565BE",
+  "supported_classes": [
+    1,
+    3
+  ],
   "true_homography": [
     [
       0.42,
@@ -47,18 +51,6 @@
       ]
     },
     {
-      "class_id": 2,
-      "center_uv": [
-        185,
-        95
-      ],
-      "radius_pixel": 10,
-      "world_xy_mm_synthetic": [
-        9.389561975768876,
-        89.25908667287979
-      ]
-    },
-    {
       "class_id": 3,
       "center_uv": [
         240,
@@ -69,6 +61,21 @@
         32.397959183673464,
         115.58441558441557
       ]
+    }
+  ],
+  "ignored_objects": [
+    {
+      "class_id": 0,
+      "center_uv": [
+        185,
+        95
+      ],
+      "radius_pixel": 10,
+      "world_xy_mm_synthetic": [
+        9.389561975768876,
+        89.25908667287979
+      ],
+      "reason": "green distractor; must not be sorted"
     }
   ]
 }

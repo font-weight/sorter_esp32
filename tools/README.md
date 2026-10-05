@@ -83,8 +83,8 @@ python -m tools.analyze_run examples/synthetic_run.csv --provenance synthetic --
 | `run_id` | Название сеанса, например `session_01` |
 | `part_id` | Идентификатор конкретного испытания детали |
 | `attempt_index` | 1, затем 2 и т.д. при повторе |
-| `expected_class` | Правильный класс 1–3 |
-| `placed_class` | Класс контейнера 1–3; пусто, если размещения нет |
+| `expected_class` | Правильный класс: 1 — красный, 3 — синий |
+| `placed_class` | Класс цвета контейнера: 1 — красный, 3 — синий; пусто, если размещения нет. Номер физического контейнера для синего — 2 |
 | `outcome` | `success`, `wrong_bin`, `miss`, `pick_fail`, `drop`, `timeout`, `aborted` |
 | `cycle_s` | Время попытки в секундах, включая ожидание и отказ |
 | `intervention` | `true`, если понадобилась помощь человека; иначе `false` |

@@ -11,7 +11,8 @@ import numpy as np
 from tools import calibrate
 from tools.analyze_run import RunLogError, analyze, duration_stats, read_log
 from tools.protocol import (Detection, LineParser, Packet, ProtocolError, Scene, crc16,
-                            decode_packet, decode_scene, encode_packet, encode_scene, parse_i32, parse_u32)
+                            decode_packet, decode_scene, encode_packet, encode_scene, parse_i32, parse_u32,
+                            SUPPORTED_CLASSES)
 from tools.serial_tool import CaptureError, read_capture, rgb565be_to_rgb
 
 
@@ -29,7 +30,7 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(decode_scene(encode_scene(scene)), scene)
 
     def test_empty_scene_and_max_count(self):
-        for objects in ((), tuple(Detection(i % 3 + 1, i, -i, 10) for i in range(8))):
+        for objects in ((), tuple(Detection(SUPPORTED_CLASSES[i % 2], i, -i, 10) for i in range(8))):
             scene = Scene(1, 2, objects)
             self.assertEqual(decode_scene(encode_scene(scene)), scene)
         with self.assertRaises(ProtocolError):
@@ -42,6 +43,15 @@ class ProtocolTests(unittest.TestCase):
             damaged[index] ^= 1
             with self.assertRaises(ProtocolError):
                 decode_packet(damaged)
+
+    def test_only_red_and_blue_classes(self):
+        self.assertEqual(SUPPORTED_CLASSES, (1, 3))
+        for cls in (0, 2, 4, 255, 65537, True):
+            with self.assertRaises(ProtocolError):
+                encode_scene(Scene(1, 2, (Detection(cls, 0, 1000, 20),)))
+        for cls in (0, 2, 4, 255, 65537):
+            with self.assertRaises(ProtocolError):
+                decode_scene(f"1,2,1;{cls},0,1000,20")
 
     def test_strict_numeric_parsing(self):
         for value in ("", "-1", "+1", " 1", "1 ", "1x", "4294967296", "1.0", "١"):
@@ -203,10 +213,18 @@ class RunAnalysisTests(unittest.TestCase):
 
     def test_inconsistent_success_row_rejected(self):
         content = (ROOT / "examples/synthetic_run.csv").read_text(encoding="utf-8")
-        invalid = content.replace("p01,1,1,1,success", "p01,1,1,2,success")
+        invalid = content.replace("p01,1,1,1,success", "p01,1,1,3,success")
         with patch.object(Path, "open", return_value=io.StringIO(invalid)):
             with self.assertRaises(RunLogError):
                 read_log("bad.csv")
+
+    def test_green_class_rejected_in_trial_log(self):
+        content = (ROOT / "examples/synthetic_run.csv").read_text(encoding="utf-8")
+        for invalid in (content.replace("p01,1,1,1,success", "p01,1,2,2,success"),
+                        content.replace("p03,1,3,1,wrong_bin", "p03,1,3,2,wrong_bin")):
+            with patch.object(Path, "open", return_value=io.StringIO(invalid)):
+                with self.assertRaises(RunLogError):
+                    read_log("green.csv")
 
     def test_empty_or_no_success_durations(self):
         with self.assertRaises(RunLogError):

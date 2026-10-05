@@ -16,7 +16,6 @@ constexpr uint16_t WIDTH = 320, HEIGHT = 240;
 constexpr uint32_t SESSION = 20260923, CAMERA_BOOT = 817;
 const ColorRange COLORS[] = {
   {1,120,255,0,110,0,110,60},
-  {2,0,120,100,255,0,130,45},
   {3,0,110,0,150,110,255,50}
 };
 
@@ -67,11 +66,11 @@ struct VirtualArm : MotionIO {
     poses.push_back(pose);
     if (selectedPart < 0) return true;
     if (samePose(pose, expectedPick)) descendedAtExpectedTarget = true;
-    for (unsigned bin = 0; bin < 3; ++bin) {
+    for (unsigned bin = 0; bin < kColorCount; ++bin) {
       if (!samePose(pose, calibration.binDropOpen[bin].joints)) continue;
       assert(descendedAtExpectedTarget);
       assert(world[size_t(selectedPart)].present);
-      assert(world[size_t(selectedPart)].classId == bin+1);
+      assert(world[size_t(selectedPart)].classId == kColorClassIds[bin]);
       // This is the explicit simulated-world assumption, not a measured grip.
       // Remove a part only after the controller reaches its correct bin and
       // commands the calibrated fully-open release pose.
@@ -106,7 +105,8 @@ class Pipeline {
  public:
   // The two red objects are separated by more than the target-match radius;
   // otherwise a neighbour could conservatively be treated as a failed pickup.
-  std::vector<SyntheticPart> world = {{1,80,60,true},{1,228,120,true},{3,140,180,true}};
+  // Green is an ignored distractor; DONE means no supported objects remain.
+  std::vector<SyntheticPart> world = {{1,80,60,true},{1,228,120,true},{3,140,180,true},{2,100,100,true}};
   MotionCalibration calibration = exampleVirtualCalibration();
   MotionSettings settings = defaultMotionSettings();
   VirtualArm arm;
@@ -178,7 +178,7 @@ class Pipeline {
     uint32_t id = 0;
     assert(parseU32(request.payload,id) && id == calibration.calibrationId);
     renderWorld();
-    const DetectorConfig detector = {COLORS,3,{40,1,281,240},10,500,true};
+    const DetectorConfig detector = {COLORS,kColorCount,{40,1,281,240},10,500,true};
     DetectorWorkspace workspace = {labels.data(),labels.size(),queue.data(),queue.size()};
     PixelBlob blobs[kMaxObjects];
     const DetectionResult found = detectRgb565BE(pixels.data(),pixels.size(),WIDTH,HEIGHT,
@@ -260,8 +260,8 @@ void normalClosedLoop(ExperimentReport& report) {
   assert(rig.scans[0].target.x10 != rig.scans[1].target.x10);
   assert(rig.controller.state() == MotionState::Done && !rig.controller.outputsOn());
   assert(rig.controller.attempts() == 3 && rig.controller.clearedTargets() == 3);
-  assert(rig.arm.releases == std::vector<unsigned>({1,1,3}));
-  for (const auto& part : rig.world) assert(!part.present);
+  assert(rig.arm.releases == std::vector<unsigned>({1,1,2}));
+  for (const auto& part : rig.world) assert(part.present == !isSupportedClass(part.classId));
   report.scans = rig.scans;
   report.releasedClasses = rig.arm.releases;
   report.virtualElapsedMs = rig.now;
@@ -347,7 +347,7 @@ int main(int argc, char** argv) {
   if (argc == 3 && !writeReport(argv[2],report)) {
     fprintf(stderr,"Could not write pipeline report\n"); return 3;
   }
-  printf("pipeline: PASS; RGB565BE -> detector -> homography -> CRC UART -> motion; scans 3,2,1,0; bins 1,1,3; DONE; %u virtual ms; %zu pose commands\n",
+  printf("pipeline: PASS; red/blue only, green remains ignored; RGB565BE -> detector -> homography -> CRC UART -> motion; scans 3,2,1,0; bins 1,1,2; DONE; %u virtual ms; %zu pose commands\n",
          unsigned(report.virtualElapsedMs),report.commandedPoses);
   puts("pipeline: corrupted UART and mismatched calibration produced zero additional pose commands; SYNTHETIC SOFTWARE ONLY");
   return 0;

@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include "PartClasses.h"
 
 namespace sorter {
 
@@ -20,21 +21,23 @@ inline Rgb decodeRgb565BE(const uint8_t* p) {
 }
 
 // Inclusive RGB888 thresholds after bit-replication expansion from RGB565.
-// classId=1..3; zero is reserved for background, ambiguity and unknown colors.
+// classId=1 (red) or 3 (blue); zero is background, ambiguity or unknown color.
 struct ColorRange {
   uint8_t classId, rMin, rMax, gMin, gMax, bMin, bMax, minChroma;
 };
 inline bool validColorRanges(const ColorRange* ranges, size_t count) {
-  if (!ranges || count == 0 || count > 3) return false;
+  if (!ranges || count == 0 || count > kColorCount) return false;
   uint8_t used = 0;
   for (size_t i = 0; i < count; ++i) {
     const ColorRange& t = ranges[i];
-    if (t.classId < 1 || t.classId > 3 || (used & (1 << t.classId)) ||
+    if (!isSupportedClass(t.classId) || (used & (1 << t.classId)) ||
         t.rMin > t.rMax || t.gMin > t.gMax || t.bMin > t.bMax) return false;
     used |= uint8_t(1 << t.classId);
   }
   return true;
 }
+
+constexpr int COLOR_DOMINANCE_DELTA = 15;
 
 inline uint8_t classifyRgb(Rgb rgb, const ColorRange* ranges, size_t count,
                            bool* ambiguous = NULL) {
@@ -47,6 +50,7 @@ inline uint8_t classifyRgb(Rgb rgb, const ColorRange* ranges, size_t count,
   uint8_t result = 0;
   for (size_t i = 0; i < count; ++i) {
     const ColorRange& t = ranges[i];
+    if (!isSupportedClass(t.classId)) continue;
     if (rgb.r >= t.rMin && rgb.r <= t.rMax &&
         rgb.g >= t.gMin && rgb.g <= t.gMax &&
         rgb.b >= t.bMin && rgb.b <= t.bMax && high - low >= t.minChroma) {
@@ -57,6 +61,11 @@ inline uint8_t classifyRgb(Rgb rgb, const ColorRange* ranges, size_t count,
       result = t.classId;
     }
   }
+  // Reject overlapping RGB ranges before checking blue dominance.
+  // Red keeps its existing RGB/chroma conditions; green is never classified.
+  if (result == kBlueClassId &&
+      !(rgb.b > int(rgb.g) + COLOR_DOMINANCE_DELTA &&
+        rgb.b > int(rgb.r) + COLOR_DOMINANCE_DELTA)) return 0;
   return result;
 }
 

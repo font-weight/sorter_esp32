@@ -1,6 +1,7 @@
 #include <ColorDetector.h>
 #include <Homography.h>
 #include "../firmware/camera_node/CameraSession.h"
+#include "../firmware/camera_node/CameraConfig.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -9,7 +10,7 @@
 
 namespace {
 const sorter::ColorRange RANGES[] = {
-  {1,120,255,0,110,0,110,60}, {2,0,120,100,255,0,130,45}, {3,0,110,0,150,110,255,50}
+  {1,120,255,0,110,0,110,60}, {3,0,110,0,150,110,255,50}
 };
 void pixel(std::vector<uint8_t>& image, int width, int x, int y, uint16_t color) {
   const size_t index = size_t(y*width+x)*2;
@@ -29,12 +30,12 @@ void testRgb() {
   assert(g.r==0 && g.g==255 && g.b==0);
   assert(b.r==0 && b.g==0 && b.b==255);
   assert(w.r==255 && w.g==255 && w.b==255);
-  assert(sorter::classifyRgb(r,RANGES,3)==1);
-  assert(sorter::classifyRgb(g,RANGES,3)==2);
-  assert(sorter::classifyRgb(b,RANGES,3)==3);
-  assert(sorter::classifyRgb(w,RANGES,3)==0);
-  assert(sorter::classifyRgb({50,50,50},RANGES,3)==0);
-  sorter::ColorRange overlap[] = {{1,0,255,0,255,0,255,0},{2,0,255,0,255,0,255,0}};
+  assert(sorter::classifyRgb(r,RANGES,2)==1);
+  assert(sorter::classifyRgb(g,RANGES,2)==0);
+  assert(sorter::classifyRgb(b,RANGES,2)==3);
+  assert(sorter::classifyRgb(w,RANGES,2)==0);
+  assert(sorter::classifyRgb({50,50,50},RANGES,2)==0);
+  sorter::ColorRange overlap[] = {{1,0,255,0,255,0,255,0},{3,0,255,0,255,0,255,0}};
   bool ambiguous = false;
   assert(sorter::classifyRgb(r,overlap,2,&ambiguous)==0 && ambiguous);
   assert(sorter::validColorRanges(overlap,2));
@@ -42,34 +43,80 @@ void testRgb() {
   assert(!sorter::validColorRanges(overlap,2));
   overlap[1].classId=4;
   assert(!sorter::validColorRanges(overlap,2));
-  overlap[1].classId=2; overlap[1].rMin=255; overlap[1].rMax=0;
+  overlap[1].classId=2;
   assert(!sorter::validColorRanges(overlap,2));
+  assert(sorter::classifyRgb({0,255,0},overlap+1,1)==0);
+  overlap[1].classId=3; overlap[1].rMin=255; overlap[1].rMax=0;
+  assert(!sorter::validColorRanges(overlap,2));
+}
+void testColorDominance() {
+  // Strict 15/16 boundary against both competing channels.
+  const sorter::ColorRange blue = {3,0,255,0,255,0,255,0};
+  assert(sorter::classifyRgb({20,100,115},&blue,1)==0);
+  assert(sorter::classifyRgb({20,100,116},&blue,1)==3);
+  assert(sorter::classifyRgb({100,20,115},&blue,1)==0);
+  assert(sorter::classifyRgb({100,20,116},&blue,1)==3);
+  // Addition at the maximum channel value must not wrap to uint8_t.
+  assert(sorter::classifyRgb({20,240,255},&blue,1)==0);
+  assert(sorter::classifyRgb({20,239,255},&blue,1)==3);
+  assert(sorter::classifyRgb({20,255,240},&blue,1)==0);
+  assert(sorter::classifyRgb({255,20,240},&blue,1)==0);
+  assert(sorter::classifyRgb({120,110,60},RANGES,1)==1); // Red has no new dominance condition.
+  const sorter::ColorRange overlap[] = {{1,0,255,0,255,0,255,0},blue};
+  const sorter::ColorRange reverse[] = {blue,overlap[0]};
+  bool ambiguous = false;
+  assert(sorter::classifyRgb({20,100,200},overlap,2,&ambiguous)==0 && ambiguous);
+  assert(sorter::classifyRgb({20,100,200},reverse,2,&ambiguous)==0 && ambiguous);
+  assert(sorter::classifyRgb({20,100,115},&blue,1,&ambiguous)==0 && !ambiguous);
+  // Check the actual firmware thresholds, rather than only synthetic ranges.
+  assert(DETECTOR_CONFIG.rangeCount == sorter::kColorCount && SENSOR_WB_MODE == 1);
+  assert(sorter::validColorRanges(COLOR_RANGES,DETECTOR_CONFIG.rangeCount));
+  assert(sorter::classifyRgb({255,80,50},COLOR_RANGES,2)==1);
+  assert(sorter::classifyRgb({140,140,230},COLOR_RANGES,2)==3);
+  assert(sorter::classifyRgb({0,255,0},COLOR_RANGES,2)==0);
+  assert(sorter::classifyRgb({150,230,200},COLOR_RANGES,2)==0);
+  assert(sorter::classifyRgb({100,175,190},COLOR_RANGES,2)==0); // Exactly 15.
+  assert(sorter::classifyRgb({100,174,190},COLOR_RANGES,2)==3); // Difference 16.
+  assert(sorter::classifyRgb({90,140,230},COLOR_RANGES,2)==0); // Outside RGB range.
+  const int width = 320, height = 240;
+  std::vector<uint8_t> image(width*height*2,0), labels(width*height);
+  std::vector<uint32_t> queue(width*height);
+  const sorter::DetectorWorkspace work={labels.data(),labels.size(),queue.data(),queue.size()};
+  sorter::PixelBlob blobs[8];
+  rect(image,width,30,30,10,10,0xFA86); // RGB565 red near (255,80,50).
+  rect(image,width,100,60,10,10,0x8C7C); // RGB565 blue near (140,140,230).
+  rect(image,width,200,100,10,10,0x07E0); // Green distractor: no component.
+  const auto result=sorter::detectRgb565BE(image.data(),image.size(),width,height,
+                                         DETECTOR_CONFIG,work,blobs,8);
+  assert(result.status==sorter::DetectionStatus::Ok && result.count==2);
+  assert(blobs[0].classId==1 && blobs[1].classId==3);
+  assert(result.stats.matchedPixels==200 && result.stats.components==2);
 }
 void testDetector() {
   const int width=32,height=24;
   std::vector<uint8_t> image(width*height*2,0), labels(width*height);
   std::vector<uint32_t> queue(width*height);
   sorter::DetectorWorkspace work={labels.data(),labels.size(),queue.data(),queue.size()};
-  sorter::DetectorConfig cfg={RANGES,3,{0,0,width,height},4,100,true};
+  sorter::DetectorConfig cfg={RANGES,2,{0,0,width,height},4,100,true};
   sorter::PixelBlob blobs[8];
   // Two disconnected red parts MUST yield two centres, not their average.
   rect(image,width,2,2,4,3,0xF800);
   rect(image,width,20,3,3,4,0xF800);
-  rect(image,width,8,12,5,3,0x07E0);
-  rect(image,width,23,16,3,3,0x001F);
+  rect(image,width,8,12,5,3,0x001F);
+  rect(image,width,23,16,3,3,0xF800);
   auto result=sorter::detectRgb565BE(image.data(),image.size(),width,height,cfg,work,blobs,8);
   assert(result.status==sorter::DetectionStatus::Ok && result.count==4);
   assert(blobs[0].classId==1 && near(blobs[0].centerX,3.5) && near(blobs[0].centerY,3));
   assert(blobs[1].classId==1 && near(blobs[1].centerX,21) && near(blobs[1].centerY,4.5));
-  assert(blobs[2].classId==2 && blobs[2].pixels==15);
-  assert(blobs[3].classId==3 && blobs[3].pixels==9);
+  assert(blobs[2].classId==3 && blobs[2].pixels==15);
+  assert(blobs[3].classId==1 && blobs[3].pixels==9);
   assert(result.stats.components==4 && result.stats.matchedPixels==48);
   result=sorter::detectRgb565BE(image.data(),image.size(),width,height,cfg,work,blobs,2);
   assert(result.status==sorter::DetectionStatus::TooManyObjects && result.count==0);
   // Tiny speck, oversized merged region and clipped edge object are excluded.
   image.assign(image.size(),0);
   rect(image,width,0,1,2,4,0xF800);
-  rect(image,width,5,3,12,10,0x07E0);
+  rect(image,width,5,3,12,10,0x001F);
   pixel(image,width,24,4,0x001F);
   rect(image,width,24,15,3,3,0x001F);
   result=sorter::detectRgb565BE(image.data(),image.size(),width,height,cfg,work,blobs,8);
@@ -90,7 +137,7 @@ void testDetector() {
   result=sorter::detectRgb565BE(image.data(),image.size(),width,height,cfg,work,blobs,8);
   assert(result.count==1 && blobs[0].pixels==4 && near(blobs[0].centerX,5.5));
   // Adjacent different colors remain separate.
-  image.assign(image.size(),0); rect(image,width,4,4,2,3,0xF800); rect(image,width,6,4,2,3,0x07E0);
+  image.assign(image.size(),0); rect(image,width,4,4,2,3,0xF800); rect(image,width,6,4,2,3,0x001F);
   result=sorter::detectRgb565BE(image.data(),image.size(),width,height,cfg,work,blobs,8);
   assert(result.count==2);
   sorter::DetectorWorkspace small=work; small.queueCapacity=3;
@@ -114,7 +161,7 @@ void testFullFrameAndNoStaleResults() {
   std::vector<uint8_t> image(width*height*2,0), labels(width*height);
   std::vector<uint32_t> queue(width*height);
   sorter::DetectorWorkspace work={labels.data(),labels.size(),queue.data(),queue.size()};
-  sorter::DetectorConfig cfg={RANGES,3,{0,0,width,height},1,width*height,false};
+  sorter::DetectorConfig cfg={RANGES,2,{0,0,width,height},1,width*height,false};
   sorter::PixelBlob blobs[8];
   rect(image,width,0,0,width,height,0xF800);
   auto result=sorter::detectRgb565BE(image.data(),image.size(),width,height,cfg,work,blobs,8);
@@ -187,7 +234,7 @@ void testSession() {
 }
 
 int main() {
-  testRgb(); testDetector(); testFullFrameAndNoStaleResults(); testHomography(); testSession();
-  puts("vision: RGB565BE, separated objects, ROI/size/overflow, full-frame queue, homography and request cache passed");
+  testRgb(); testColorDominance(); testDetector(); testFullFrameAndNoStaleResults(); testHomography(); testSession();
+  puts("vision: red/blue only, green rejected, blue dominance, firmware thresholds, RGB565BE, components, ROI/size/overflow, homography and request cache passed");
   return 0;
 }

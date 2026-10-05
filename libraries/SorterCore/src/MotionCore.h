@@ -220,7 +220,7 @@ class MotionController {
     if (cameraBoot_ && cameraBoot_ != scene.cameraBoot) { fault(MotionError::CameraRestart); return false; }
     cameraBoot_ = scene.cameraBoot;
     for (uint8_t i = 0; i < scene.count; ++i)
-      if (scene.objects[i].classId < 1 || scene.objects[i].classId > 3 || !scene.objects[i].pixels) {
+      if (!isSupportedClass(scene.objects[i].classId) || !scene.objects[i].pixels) {
         fault(MotionError::MalformedScene); return false;
       }
     if (verifyTarget_) {
@@ -301,7 +301,8 @@ class MotionController {
     routeSize_ = 0;
     if (!interpolateGrid(c_, target_.x10, target_.y10, false, low) ||
         !interpolateGrid(c_, target_.x10, target_.y10, true, high)) return false;
-    const uint8_t bin = uint8_t(target_.classId - 1);
+    const uint8_t bin = classBinIndex(target_.classId);
+    if (bin >= kColorCount) return false;
     return addStep(c_.hubOpen, false, s_.dwellMs, "HUB_OUT") &&
       addStep(high, false, s_.dwellMs, "APPROACH") &&
       addStep(low, false, s_.dwellMs, "DESCEND") &&

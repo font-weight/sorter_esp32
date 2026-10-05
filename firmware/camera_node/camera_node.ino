@@ -121,7 +121,7 @@ void handleRequest(const sorter::Packet& request) {
   scene.cameraBoot = cameraBoot; scene.calibrationId = wantedCalibration;
   for (size_t i = 0; i < found.count; ++i) {
     const sorter::PixelBlob& blob = blobs[i];
-    if (blob.classId < 1 || blob.classId > 3) continue;
+    if (!sorter::isSupportedClass(blob.classId)) continue;
     // Reject even a partly unsupported bounding box. Mapping its centre alone
     // would allow a part extending beyond the measured calibration region.
     if (!mapping.contains(blob.left, blob.top) || !mapping.contains(blob.right, blob.top) ||

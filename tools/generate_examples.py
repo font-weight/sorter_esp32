@@ -39,13 +39,18 @@ def generate(directory):
     (directory / "SyntheticCalibration.h").write_text(cpp_header(calibration), encoding="utf-8")
     image = Image.new("RGB", (320, 240), (180, 180, 180))
     draw = ImageDraw.Draw(image)
-    objects = []
-    for class_id, center, color in [(1, (90, 80), (220, 35, 30)), (1, (135, 170), (220, 35, 30)),
-                                    (2, (185, 95), (35, 195, 45)), (3, (240, 165), (35, 65, 225))]:
+    objects, ignored_objects = [], []
+    for class_id, center, color in [(1, (90, 80), (255, 80, 50)), (1, (135, 170), (255, 80, 50)),
+                                    (0, (185, 95), (35, 195, 45)), (3, (240, 165), (140, 140, 230))]:
         u, v = center
         draw.ellipse((u - 10, v - 10, u + 10, v + 10), fill=color)
-        objects.append({"class_id": class_id, "center_uv": list(center), "radius_pixel": 10,
-                        "world_xy_mm_synthetic": project_points(truth_h, [center])[0].tolist()})
+        record = {"class_id": class_id, "center_uv": list(center), "radius_pixel": 10,
+                  "world_xy_mm_synthetic": project_points(truth_h, [center])[0].tolist()}
+        if class_id:
+            objects.append(record)
+        else:
+            record["reason"] = "green distractor; must not be sorted"
+            ignored_objects.append(record)
     image.save(directory / "synthetic_scene.png")
     image.save(directory / "synthetic_scene.ppm")
     rgb = np.asarray(image, dtype=np.uint16)
@@ -53,7 +58,8 @@ def generate(directory):
     (directory / "synthetic_scene.rgb565").write_bytes(values.astype(">u2").tobytes())
     (directory / "synthetic_scene_truth.json").write_text(json.dumps({"provenance": "synthetic",
         "not_a_camera_capture": True, "width": 320, "height": 240, "format": "RGB565BE",
-        "true_homography": truth_h.tolist(), "objects": objects}, indent=2) + "\n", encoding="utf-8")
+        "supported_classes": [1, 3], "true_homography": truth_h.tolist(),
+        "objects": objects, "ignored_objects": ignored_objects}, indent=2) + "\n", encoding="utf-8")
     points_image = Image.new("RGB", (640, 480), "white")
     point_draw = ImageDraw.Draw(points_image)
     point_draw.text((15, 8), "SYNTHETIC - NOT MEASURED - 9 TRAIN / 4 TEST", fill="black")
@@ -67,14 +73,14 @@ def generate(directory):
     points_image.save(directory / "synthetic_calibration_layout.png")
     rows_log = [
         ("synthetic_run", "p01", 1, 1, 1, "success", 14.0, "false", "SYNTHETIC fixture"),
-        ("synthetic_run", "p02", 1, 2, "", "miss", 15.0, "false", "SYNTHETIC fixture"),
-        ("synthetic_run", "p02", 2, 2, 2, "success", 16.0, "false", "SYNTHETIC retry"),
+        ("synthetic_run", "p02", 1, 3, "", "miss", 15.0, "false", "SYNTHETIC fixture"),
+        ("synthetic_run", "p02", 2, 3, 3, "success", 16.0, "false", "SYNTHETIC retry"),
         ("synthetic_run", "p03", 1, 3, 1, "wrong_bin", 18.0, "false", "SYNTHETIC fixture"),
         ("synthetic_run", "p04", 1, 1, "", "drop", 12.0, "false", "SYNTHETIC fixture"),
-        ("synthetic_run", "p05", 1, 2, 2, "success", 13.0, "false", "SYNTHETIC fixture"),
+        ("synthetic_run", "p05", 1, 3, 3, "success", 13.0, "false", "SYNTHETIC fixture"),
         ("synthetic_run", "p06", 1, 3, "", "timeout", 30.0, "false", "SYNTHETIC fixture"),
         ("synthetic_run", "p07", 1, 1, "", "aborted", 5.0, "true", "SYNTHETIC intervention"),
-        ("synthetic_run", "p08", 1, 2, 2, "success", 15.0, "false", "SYNTHETIC fixture"),
+        ("synthetic_run", "p08", 1, 3, 3, "success", 15.0, "false", "SYNTHETIC fixture"),
     ]
     log_path = directory / "synthetic_run.csv"
     with log_path.open("w", encoding="utf-8", newline="") as out:

@@ -6,6 +6,11 @@ import math
 from collections import Counter
 from pathlib import Path
 
+try:
+    from .protocol import SUPPORTED_CLASSES
+except ImportError:
+    from protocol import SUPPORTED_CLASSES
+
 
 OUTCOMES = {"success", "wrong_bin", "miss", "pick_fail", "drop", "timeout", "aborted"}
 COLUMNS = ("run_id", "part_id", "attempt_index", "expected_class", "placed_class", "outcome",
@@ -31,7 +36,7 @@ def read_log(path):
                 placed = None if row["placed_class"] == "" else int(row["placed_class"])
                 duration = float(row["cycle_s"])
                 intervention_raw = row["intervention"].strip().lower()
-                if attempt < 1 or expected not in (1, 2, 3) or placed not in (None, 1, 2, 3):
+                if attempt < 1 or expected not in SUPPORTED_CLASSES or placed not in (None, *SUPPORTED_CLASSES):
                     raise ValueError("Invalid attempt or class")
                 if not math.isfinite(duration) or duration < 0:
                     raise ValueError("Invalid cycle_s")

@@ -47,18 +47,21 @@ int main() {
     Scene output;assert(decodeScene(decoded.payload,output));assert(output.count==2 && output.objects[1].x10==INT32_MIN);
     assert(output.objects[0].classId==output.objects[1].classId); // same-color objects stay independent
     const char* invalidScenes[]={"1,2,0;", "1,2,9", "0,2,0", "1,0,0", "1,2,-1", "1,2,1;1,0,0,0",
-       "1,2,1;4,0,0,1", "1,2,1;1,0,0,1;", "1,2,1;1,2147483648,0,1", "1,2,1;1,0,0,1,2",
+       "1,2,1;4,0,0,1", "1,2,1;2,0,0,1", "1,2,1;65537,0,0,1", "1,2,1;1,0,0,1;", "1,2,1;1,2147483648,0,1", "1,2,1;1,0,0,1,2",
        "1,2,0;1,0,0,1", "1,2,2;1,0,0,1", "1,2,1;1,0,0,1;2,0,0,1"};
     for(const char* payload:invalidScenes) assert(!decodeScene(payload,output));
+    scene.objects[0].classId=2;
+    assert(!encodeScene(scene,d.payload,sizeof(d.payload)) && d.payload[0]==0);
     scene.cameraBoot=UINT32_MAX;scene.calibrationId=UINT32_MAX;scene.count=8;
     for(size_t k=0;k<8;++k) {
-        scene.objects[k].classId=uint8_t(k%3+1);
+        scene.objects[k].classId=kColorClassIds[k%kColorCount];
         scene.objects[k].x10=INT32_MIN;scene.objects[k].y10=INT32_MAX;
         scene.objects[k].pixels=UINT32_MAX;
     }
     assert(encodeScene(scene,d.payload,sizeof(d.payload)));
     assert(encodePacket(d,encoded,sizeof(encoded)) && decodePacket(encoded,decoded));
     assert(decodeScene(decoded.payload,output) && output.count==8);
+    assert(output.objects[1].classId==3);
     assert(output.objects[7].pixels==UINT32_MAX && output.objects[7].x10==INT32_MIN);
     const Scene beforeBadScene=output;
     assert(!decodeScene("1,2,1;1,0,0,0",output));

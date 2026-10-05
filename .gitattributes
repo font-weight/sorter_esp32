@@ -1,0 +1,4 @@
+# Preserve binary camera fixtures when checking out on Windows.
+*.png binary
+*.ppm binary
+*.rgb565 binary

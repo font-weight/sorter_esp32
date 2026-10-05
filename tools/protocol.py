@@ -6,6 +6,9 @@ MAX_PAYLOAD = 400
 MAX_BODY = 480
 MAX_FRAME = 512
 MAX_OBJECTS = 8
+RED_CLASS = 1
+BLUE_CLASS = 3
+SUPPORTED_CLASSES = (RED_CLASS, BLUE_CLASS)
 U32_MAX = (1 << 32) - 1
 I32_MIN, I32_MAX = -(1 << 31), (1 << 31) - 1
 
@@ -85,6 +88,8 @@ def encode_scene(scene: Scene) -> str:
     rows = [f"{scene.camera_boot},{scene.calibration_id},{len(scene.objects)}"]
     for obj in scene.objects:
         _integer(obj.class_id, 1, 3, "class_id")
+        if obj.class_id not in SUPPORTED_CLASSES:
+            raise ProtocolError("class_id must be 1 (red) or 3 (blue)")
         _integer(obj.x10, I32_MIN, I32_MAX, "x10")
         _integer(obj.y10, I32_MIN, I32_MAX, "y10")
         _integer(obj.pixels, 1, U32_MAX, "pixels")
@@ -112,8 +117,8 @@ def decode_scene(payload: str) -> Scene:
             raise ProtocolError("Detection must have four fields")
         cls, x10, y10, pixels = (parse_u32(values[0]), parse_i32(values[1]),
                                 parse_i32(values[2]), parse_u32(values[3], True))
-        if not 1 <= cls <= 3:
-            raise ProtocolError("class_id must be 1..3")
+        if cls not in SUPPORTED_CLASSES:
+            raise ProtocolError("class_id must be 1 (red) or 3 (blue)")
         objects.append(Detection(cls, x10, y10, pixels))
     return Scene(boot, cal_id, tuple(objects))
 

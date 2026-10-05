@@ -9,9 +9,7 @@ grid_minX_maxY_high,,,,,,,,false,,
 grid_maxX_maxY_high,,,,,,,,false,,
 park_supported,,,,,,,,false,,
 hub,,,,,,,,false,,
-bin1_high,,,,,,,,false,,
-bin1_drop,,,,,,,,false,,
-bin2_high,,,,,,,,false,,
-bin2_drop,,,,,,,,false,,
-bin3_high,,,,,,,,false,,
-bin3_drop,,,,,,,,false,,
+bin1_high,,,,,,,,false,,red_class_1
+bin1_drop,,,,,,,,false,,red_class_1
+bin2_high,,,,,,,,false,,blue_class_3
+bin2_drop,,,,,,,,false,,blue_class_3

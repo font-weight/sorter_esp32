@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#include "PartClasses.h"
 
 namespace sorter {
 
@@ -96,7 +97,7 @@ inline bool encodeScene(const Scene& scene, char* output, size_t capacity) {
     size_t used = static_cast<size_t>(n);
     for (size_t i = 0; i < scene.count; ++i) {
         const Detection& d = scene.objects[i];
-        if (d.classId < 1 || d.classId > 3 || !d.pixels) { output[0] = 0; return false; }
+        if (!isSupportedClass(d.classId) || !d.pixels) { output[0] = 0; return false; }
         n = snprintf(output + used, capacity - used, ";%u,%ld,%ld,%lu", static_cast<unsigned>(d.classId),
                      static_cast<long>(d.x10), static_cast<long>(d.y10), static_cast<unsigned long>(d.pixels));
         if (n < 0 || static_cast<size_t>(n) >= capacity - used) { output[0] = 0; return false; }
@@ -128,7 +129,7 @@ inline bool decodeScene(const char* payload, Scene& output) {
         char* f[4];
         uint32_t cls;
         Detection& d = candidate.objects[i];
-        if (!splitExact(objectStart, ',', f, 4) || !parseU32(f[0], cls) || cls < 1 || cls > 3 ||
+        if (!splitExact(objectStart, ',', f, 4) || !parseU32(f[0], cls) || !isSupportedClass(cls) ||
             !parseI32(f[1], d.x10) || !parseI32(f[2], d.y10) || !parseU32(f[3], d.pixels) || !d.pixels)
             return false;
         d.classId = static_cast<uint8_t>(cls);
