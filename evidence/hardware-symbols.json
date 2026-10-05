@@ -1,0 +1,37 @@
+{
+  "status": "passed",
+  "checked_utc": "2026-10-03T15:25:34.7433764Z",
+  "hardware_build_finished_utc": "2026-10-03T15:23:06.8271371Z",
+  "tool": "Xtensa nm -C",
+  "checks": [
+    {
+      "sketch": "camera_node",
+      "elf_sha256": "f182ec545a17a0936c96ace118a4f37bbb560ed886cc74868d9ed0eb041f9d93",
+      "present_symbols": [
+        "400e53ac T esp_camera_init",
+        "400d3eb8 T HardwareSerial::begin(unsigned long, unsigned long, signed char, signed char, bool, unsigned long, unsigned char)"
+      ],
+      "passed": true
+    },
+    {
+      "sketch": "motion_node",
+      "elf_sha256": "72a472f8cffd92c827c4f7acd392da8a1ff990fecfd87133c4d0d40796fe16fa",
+      "present_symbols": [
+        "400d4658 T ledcAttach",
+        "400d46cc T ledcWrite",
+        "400d3a70 T HardwareSerial::begin(unsigned long, unsigned long, signed char, signed char, bool, unsigned long, unsigned char)"
+      ],
+      "passed": true
+    },
+    {
+      "sketch": "arm_calibration",
+      "elf_sha256": "3b8b8170fc70f6277f91f4ff5f62240567b61845ea7f1af6766c768bbea5803b",
+      "present_symbols": [
+        "400d3278 T ledcAttach",
+        "400d32ec T ledcWrite"
+      ],
+      "passed": true
+    }
+  ],
+  "proves": "Symbols linked in compile-only ELF; no execution or hardware validation"
+}

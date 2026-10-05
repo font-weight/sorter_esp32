@@ -1,0 +1,74 @@
+{
+  "provenance": "synthetic",
+  "not_a_camera_capture": true,
+  "width": 320,
+  "height": 240,
+  "format": "RGB565BE",
+  "true_homography": [
+    [
+      0.42,
+      0.025,
+      -70.0
+    ],
+    [
+      0.015,
+      0.4,
+      55.0
+    ],
+    [
+      0.0006,
+      -0.0004,
+      1.0
+    ]
+  ],
+  "objects": [
+    {
+      "class_id": 1,
+      "center_uv": [
+        90,
+        80
+      ],
+      "radius_pixel": 10,
+      "world_xy_mm_synthetic": [
+        -29.54990215264188,
+        86.44814090019568
+      ]
+    },
+    {
+      "class_id": 1,
+      "center_uv": [
+        135,
+        170
+      ],
+      "radius_pixel": 10,
+      "world_xy_mm_synthetic": [
+        -8.933859822309975,
+        123.42053307008887
+      ]
+    },
+    {
+      "class_id": 2,
+      "center_uv": [
+        185,
+        95
+      ],
+      "radius_pixel": 10,
+      "world_xy_mm_synthetic": [
+        9.389561975768876,
+        89.25908667287979
+      ]
+    },
+    {
+      "class_id": 3,
+      "center_uv": [
+        240,
+        165
+      ],
+      "radius_pixel": 10,
+      "world_xy_mm_synthetic": [
+        32.397959183673464,
+        115.58441558441557
+      ]
+    }
+  ]
+}

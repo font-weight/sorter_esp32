@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src blob: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'">
+  <title>Точки калибровки · Сортировщик</title>
+  <style>
+    :root{color-scheme:light;--ink:#182c3e;--muted:#526576;--line:#d4dfe7;--paper:#fff;--blue:#1464c0;--amber:#bb6000;--green:#0d7564}
+    *{box-sizing:border-box}body{margin:0;background:#edf2f6;color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+    main{max-width:1230px;margin:0 auto;padding:30px 24px 50px}header{display:flex;gap:20px;align-items:flex-start;justify-content:space-between;margin-bottom:22px}
+    h1{font-size:28px;line-height:1.2;margin:0 0 9px;letter-spacing:-.6px}h2{font-size:17px;margin:0 0 14px}p{margin:0 0 12px}.subtitle{color:var(--muted);max-width:850px}
+    .badge{white-space:nowrap;font-size:11px;font-weight:750;letter-spacing:1px;color:var(--green);background:#dcefe9;border:1px solid #b9ddd1;border-radius:20px;padding:7px 11px}
+    .grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(290px,1fr);gap:18px}.card{background:var(--paper);border:1px solid var(--line);border-radius:13px;padding:21px;box-shadow:0 4px 14px #16365105}
+    .steps{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 18px;color:var(--muted);font-size:13px}.steps span{padding:5px 9px;background:#f3f6f9;border-radius:5px}
+    label{display:block;font-size:13px;font-weight:650;margin-bottom:5px}input,select,button{font:inherit}input[type=file]{max-width:100%;font-size:13px}input[type=number],select{width:100%;border:1px solid #b8c8d5;border-radius:7px;padding:9px;background:#fff;color:var(--ink)}
+    button{border:1px solid #b9cad9;border-radius:7px;background:#f6f9fb;color:var(--ink);padding:9px 13px;font-weight:650;cursor:pointer}button:hover:not(:disabled){background:#eaf1f7}button:disabled{opacity:.48;cursor:not-allowed}.primary{background:var(--blue);color:white;border-color:var(--blue)}.primary:hover:not(:disabled){background:#0e55a5}.small{font-size:12px;padding:4px 8px}
+    .toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:15px 0 10px}.meta{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}.notice{border-radius:7px;padding:10px 12px;background:#f1f6fa;font-size:13px;margin:12px 0}.notice.warn{background:#fff3dd;color:#7a4900}.notice.ok{background:#e8f5ef;color:#155f49}
+    .image-shell{min-height:260px;display:flex;align-items:center;justify-content:center;background:#e5ebf0;border:1px solid #cad7e1;border-radius:9px;overflow:hidden}canvas{display:block;width:100%;height:auto;max-width:100%;cursor:crosshair;touch-action:manipulation}canvas[hidden]{display:none}.empty{padding:40px 25px;text-align:center;color:#607487;max-width:400px}
+    .legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:10px;font-size:12px;color:var(--muted)}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}.blue{background:var(--blue)}.amber{background:#e17a12}
+    .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.coordinates{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin:12px 0}.help{font-size:12px;color:var(--muted)}.full{width:100%;margin-top:10px}.status{font-size:13px;min-height:23px;margin-top:10px;color:var(--muted)}.status.error{color:#a52323}
+    .count-row{display:flex;gap:9px;flex-wrap:wrap;margin:15px 0}.count{font-size:13px;border:1px solid var(--line);padding:5px 9px;border-radius:5px}.count strong{font-size:17px;margin-right:4px}.table-wrap{overflow:auto;max-height:360px;border:1px solid var(--line);border-radius:8px;margin-top:15px}table{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap}th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #e0e8ee}th{background:#f3f7fa;position:sticky;top:0}th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}tbody tr:last-child td{border:0}.foot{font-size:12px;color:var(--muted);margin-top:15px}.swatch{display:inline-block;width:20px;height:20px;vertical-align:middle;border:1px solid #9badbb;border-radius:4px;margin-right:7px}.color-result{font:13px ui-monospace,Consolas,monospace;margin:7px 0}
+    @media(max-width:800px){main{padding:20px 14px}.grid{grid-template-columns:1fr}header{display:block}.badge{display:inline-block;margin-top:8px}h1{font-size:25px}.card{padding:16px}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><h1>Точки калибровки камеры</h1><p class="subtitle">Выберите центры меток на снимке и внесите измеренные координаты в миллиметрах. Страница подготовит CSV для расчёта калибровки.</p></div>
+    <span class="badge">ЛОКАЛЬНО · БЕЗ СЕТИ</span>
+  </header>
+  <div class="steps"><span>1 · Открыть кадр</span><span>2 · Нажать на центр метки</span><span>3 · Ввести X / Y</span><span>4 · Сохранить CSV</span></div>
+  <div class="grid">
+    <section class="card" aria-labelledby="image-title">
+      <h2 id="image-title">Кадр камеры</h2>
+      <label for="image-file">Локальный PNG или JPEG</label>
+      <input id="image-file" type="file" accept="image/png,image/jpeg">
+      <p class="help" style="margin-top:7px">Новый файл очистит текущие точки. Сохраните их CSV перед заменой кадра.</p>
+      <div id="resolution" class="notice">Для рабочей прошивки camera_node нужен исходный кадр 320 × 240 без обрезки и поворота.</div>
+      <div class="toolbar"><button id="mark-mode" disabled aria-pressed="true">Ставить метки</button><button id="color-mode" disabled aria-pressed="false">Измерить RGB</button><span id="pointer" class="meta">Координаты — в исходных пикселях</span></div>
+      <div class="image-shell"><div id="empty" class="empty">Сначала выберите снимок. Он останется на вашем компьютере.</div><canvas id="image" hidden aria-label="Изображение для выбора калибровочных точек"></canvas></div>
+      <div class="legend"><span><i class="dot blue"></i>train — расчёт матрицы</span><span><i class="dot amber"></i>test — независимая проверка</span></div>
+      <div id="color-result" class="color-result" hidden><span id="swatch" class="swatch"></span><span id="rgb-text"></span></div>
+      <p class="foot">Масштаб отображения не меняет пиксельные координаты. Режим RGB только показывает цвет и не добавляет метки. Цвет PNG отображается после преобразования браузером; это вспомогательная оценка, не автоматическая настройка порогов.</p>
+    </section>
+    <section class="card" aria-labelledby="point-title">
+      <h2 id="point-title">Новая точка</h2>
+      <p class="help">Нажмите на центр метки слева. X и Y измерьте на стенде в системе координат руки; страница не определяет их по фотографии.</p>
+      <div id="pending" class="coordinates">U — &nbsp; V —</div>
+      <label for="split">Назначение точки</label>
+      <select id="split"><option value="train">train · расчёт матрицы</option><option value="test">test · независимая проверка</option></select>
+      <div class="pair"><div><label for="x-mm">X, мм</label><input id="x-mm" type="number" step="any" placeholder="Измеренное X" autocomplete="off"></div><div><label for="y-mm">Y, мм</label><input id="y-mm" type="number" step="any" placeholder="Измеренное Y" autocomplete="off"></div></div>
+      <button id="add" class="primary full" disabled>Добавить точку</button>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+      <div class="count-row"><span class="count"><strong id="train-count">0</strong> train</span><span class="count"><strong id="test-count">0</strong> test</span><span class="count"><strong id="total-count">0</strong> всего</span></div>
+      <div id="readiness" class="notice">Рекомендуется 9 train + 4 test, распределённых по рабочей области. Для экспорта нужно не менее 6 train + 3 test.</div>
+      <div class="toolbar"><button id="undo" disabled>Отменить изменение</button><button id="export" class="primary" disabled>Сохранить CSV</button></div>
+      <p class="help">Повторные центры и одинаковые X/Y не допускаются. Контрольные точки ставьте между обучающими, внутри их внешней границы.</p>
+      <p class="help">CSV содержит только введённые соответствия. Проверка геометрии, ошибка на контрольных точках и матрица рассчитываются отдельно в calibrate.py.</p>
+    </section>
+  </div>
+  <section class="card" style="margin-top:18px" aria-labelledby="points-title">
+    <h2 id="points-title">Сохранённые точки</h2>
+    <div class="table-wrap"><table><thead><tr><th>№</th><th>Группа</th><th>U, px</th><th>V, px</th><th>X, мм</th><th>Y, мм</th><th>Действие</th></tr></thead><tbody id="point-list"><tr><td colspan="7" style="text-align:left;color:#657b8c">Точек пока нет.</td></tr></tbody></table></div>
+    <p class="foot">Данные хранятся только в открытой вкладке. Закрытие или перезагрузка очистит их. Проверяйте высоту плоскости меток, разрешение, неподвижность камеры и направления осей перед расчётом.</p>
+  </section>
+</main>
+<script>
+"use strict";
+const el=id=>document.getElementById(id);
+const canvas=el("image"), ctx=canvas.getContext("2d");
+const source=document.createElement("canvas"), sourceCtx=source.getContext("2d",{willReadFrequently:true});
+let frame=null, points=[], history=[], pending=null, mode="mark", filename="camera", loadGeneration=0;
+const roundPixel=value=>Math.round(value*10)/10;
+
+function imageCoordinates(clientX,clientY,rect,width,height){
+  if(!(rect.width>0&&rect.height>0&&width>0&&height>0)) return null;
+  if(clientX<rect.left||clientX>rect.right||clientY<rect.top||clientY>rect.bottom) return null;
+  return {u:roundPixel(Math.min(width-1,Math.max(0,(clientX-rect.left)*width/rect.width))),
+          v:roundPixel(Math.min(height-1,Math.max(0,(clientY-rect.top)*height/rect.height)))};
+}
+function status(message,error=false){el("status").textContent=message;el("status").classList.toggle("error",error);}
+function draw(){
+  if(!frame)return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(frame,0,0);
+  const scale=Math.max(1,canvas.width/320);
+  points.forEach((point,index)=>{
+    const color=point.split==="train"?"#1268d6":"#ff8b16";
+    ctx.beginPath();ctx.arc(point.u,point.v,4*scale,0,Math.PI*2);ctx.lineWidth=1.8*scale;ctx.strokeStyle="white";ctx.stroke();
+    ctx.beginPath();ctx.arc(point.u,point.v,3*scale,0,Math.PI*2);ctx.strokeStyle=color;ctx.lineWidth=1.5*scale;ctx.stroke();
+    ctx.font=`bold ${8*scale}px sans-serif`;ctx.lineWidth=2*scale;ctx.strokeStyle="white";ctx.strokeText(String(index+1),point.u+6*scale,point.v-5*scale);ctx.fillStyle=color;ctx.fillText(String(index+1),point.u+6*scale,point.v-5*scale);
+  });
+  if(pending){ctx.strokeStyle="#fff";ctx.lineWidth=2*scale;ctx.beginPath();ctx.moveTo(pending.u-7*scale,pending.v);ctx.lineTo(pending.u+7*scale,pending.v);ctx.moveTo(pending.u,pending.v-7*scale);ctx.lineTo(pending.u,pending.v+7*scale);ctx.stroke();ctx.strokeStyle="#182c3e";ctx.lineWidth=.8*scale;ctx.stroke();}
+}
+function update(){
+  const train=points.filter(p=>p.split==="train").length,test=points.length-train;
+  el("train-count").textContent=train;el("test-count").textContent=test;el("total-count").textContent=points.length;
+  el("pending").textContent=pending?`U ${pending.u.toFixed(1)}   V ${pending.v.toFixed(1)}`:"U —   V —";
+  el("add").disabled=!pending;el("undo").disabled=history.length===0;el("export").disabled=train<6||test<3;
+  const ready=el("readiness");ready.className="notice";
+  if(train>=9&&test>=4){ready.classList.add("ok");ready.textContent="Рекомендуемое число точек набрано. Проверьте их распределение и сохраните CSV для независимого расчёта.";}
+  else if(train>=6&&test>=3){ready.classList.add("warn");ready.textContent="Минимум для расчёта набран. Для более содержательной проверки рекомендуется 9 train + 4 test.";}
+  else{ready.textContent=`Для экспорта добавьте ещё минимум ${Math.max(0,6-train)} train и ${Math.max(0,3-test)} test. Рекомендуется 9 train + 4 test.`;}
+  const tbody=el("point-list");tbody.replaceChildren();
+  if(!points.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=7;td.textContent="Точек пока нет.";td.style.textAlign="left";tr.append(td);tbody.append(tr);}
+  points.forEach((point,index)=>{
+    const tr=document.createElement("tr");
+    [index+1,point.split,point.u.toFixed(1),point.v.toFixed(1),point.x,point.y].forEach(value=>{const td=document.createElement("td");td.textContent=String(value);tr.append(td);});
+    const td=document.createElement("td"),button=document.createElement("button");button.className="small";button.textContent="Удалить";button.setAttribute("aria-label",`Удалить точку ${index+1}`);
+    button.addEventListener("click",()=>{history.push(points.map(p=>({...p})));points.splice(index,1);status(`Точка ${index+1} удалена. Отмена вернёт её.`);update();});td.append(button);tr.append(td);tbody.append(tr);
+  });draw();
+}
+function setMode(next){mode=next;el("mark-mode").setAttribute("aria-pressed",String(next==="mark"));el("color-mode").setAttribute("aria-pressed",String(next==="color"));el("mark-mode").classList.toggle("primary",next==="mark");el("color-mode").classList.toggle("primary",next==="color");}
+el("mark-mode").addEventListener("click",()=>setMode("mark"));el("color-mode").addEventListener("click",()=>setMode("color"));
+el("image-file").addEventListener("change",event=>{
+  const file=event.target.files[0];if(!file)return;
+  if(!["image/png","image/jpeg"].includes(file.type)){status("Выберите PNG или JPEG.",true);return;}
+  const generation=++loadGeneration,url=URL.createObjectURL(file),image=new Image();
+  image.onload=()=>{
+    URL.revokeObjectURL(url);if(generation!==loadGeneration)return;
+    if(image.naturalWidth>4096||image.naturalHeight>4096||image.naturalWidth*image.naturalHeight>12000000){status("Кадр слишком большой. Откройте исходный снимок камеры, предпочтительно 320 × 240.",true);return;}
+    frame=image;filename=file.name.replace(/\.[^.]+$/,"");points=[];history=[];pending=null;
+    canvas.width=source.width=image.naturalWidth;canvas.height=source.height=image.naturalHeight;sourceCtx.drawImage(image,0,0);
+    canvas.hidden=false;el("empty").hidden=true;el("mark-mode").disabled=el("color-mode").disabled=false;el("color-result").hidden=true;
+    el("x-mm").value=el("y-mm").value="";
+    const resolution=el("resolution"),matches=canvas.width===320&&canvas.height===240;
+    resolution.className=matches?"notice ok":"notice warn";
+    resolution.textContent=`${canvas.width} × ${canvas.height} px · ${file.name}. `+(matches?"Разрешение совпадает с camera_node.":"Внимание: camera_node использует 320 × 240. Эти точки нельзя напрямую применять к нему. Экспорт для другого режима возможен, но разрешение нужно явно задать в calibrate.py.");
+    setMode("mark");status("Кадр открыт. Выберите центр первой метки.");update();
+  };
+  image.onerror=()=>{URL.revokeObjectURL(url);status("Не удалось открыть изображение.",true);};image.src=url;
+});
+canvas.addEventListener("pointermove",event=>{if(!frame)return;const p=imageCoordinates(event.clientX,event.clientY,canvas.getBoundingClientRect(),canvas.width,canvas.height);if(p)el("pointer").textContent=`U ${p.u.toFixed(1)} · V ${p.v.toFixed(1)} px`;});
+canvas.addEventListener("click",event=>{
+  if(!frame)return;const p=imageCoordinates(event.clientX,event.clientY,canvas.getBoundingClientRect(),canvas.width,canvas.height);if(!p)return;
+  if(mode==="color"){
+    const rgb=sourceCtx.getImageData(Math.round(p.u),Math.round(p.v),1,1).data;
+    el("swatch").style.backgroundColor=`rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;el("rgb-text").textContent=`RGB ${rgb[0]}, ${rgb[1]}, ${rgb[2]} · U ${p.u}, V ${p.v}`;el("color-result").hidden=false;return;
+  }
+  pending=p;el("x-mm").value=el("y-mm").value="";status("Введите измеренные X и Y этой метки.");update();el("x-mm").focus();
+});
+el("add").addEventListener("click",()=>{
+  if(!pending)return;
+  const xRaw=el("x-mm").value.trim(),yRaw=el("y-mm").value.trim(),x=Number(xRaw),y=Number(yRaw);
+  if(xRaw===""||yRaw===""||!Number.isFinite(x)||!Number.isFinite(y)){status("Введите оба измеренных значения X и Y. Ноль допустим, пустое поле — нет.",true);return;}
+  if(points.some(p=>Math.hypot(p.u-pending.u,p.v-pending.v)<1)){status("Этот центр уже выбран или расположен ближе 1 пикселя к другой метке.",true);return;}
+  if(points.some(p=>Math.hypot(p.x-x,p.y-y)<0.01)){status("Такие X/Y уже записаны. Контрольные точки должны быть независимыми.",true);return;}
+  history.push(points.map(p=>({...p})));points.push({...pending,x,y,split:el("split").value});pending=null;el("x-mm").value=el("y-mm").value="";status("Точка добавлена. Выберите следующую метку.");update();
+});
+el("undo").addEventListener("click",()=>{if(!history.length)return;points=history.pop();pending=null;status("Последнее добавление или удаление отменено.");update();});
+el("export").addEventListener("click",()=>{
+  const train=points.filter(p=>p.split==="train").length;if(train<6||points.length-train<3)return;
+  const csv="\ufeffsplit,u,v,x_mm,y_mm\r\n"+points.map(p=>[p.split,p.u,p.v,p.x,p.y].join(",")).join("\r\n")+"\r\n";
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"})),anchor=document.createElement("a");anchor.href=url;anchor.download=filename.replace(/[<>:"/\\|?*]/g,"_")+"_points.csv";anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status("CSV подготовлен для сохранения. Это точки, а не подтверждённая калибровка.");
+});
+setMode("mark");update();
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+Compile camera_diagnostic for esp32:esp32:esp32cam
+Sketch uses 374957 bytes (11%) of program storage space. Maximum is 3145728 bytes.
+Global variables use 34156 bytes (10%) of dynamic memory, leaving 293524 bytes for local variables. Maximum is 327680 bytes.
+Compile camera_node for esp32:esp32:esp32cam
+Sketch uses 377241 bytes (11%) of program storage space. Maximum is 3145728 bytes.
+Global variables use 35556 bytes (10%) of dynamic memory, leaving 292124 bytes for local variables. Maximum is 327680 bytes.
+Compile servo_diagnostic for esp32:esp32:esp32
+Sketch uses 275827 bytes (21%) of program storage space. Maximum is 1310720 bytes.
+Global variables use 22360 bytes (6%) of dynamic memory, leaving 305320 bytes for local variables. Maximum is 327680 bytes.
+Compile motion_node for esp32:esp32:esp32
+Sketch uses 280148 bytes (21%) of program storage space. Maximum is 1310720 bytes.
+Global variables use 24108 bytes (7%) of dynamic memory, leaving 303572 bytes for local variables. Maximum is 327680 bytes.
+Compile arm_calibration for esp32:esp32:esp32
+Sketch uses 278131 bytes (21%) of program storage space. Maximum is 1310720 bytes.
+Global variables use 22464 bytes (6%) of dynamic memory, leaving 305216 bytes for local variables. Maximum is 327680 bytes.
+Compilation complete. Nothing uploaded; board identities still require confirmation.

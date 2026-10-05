@@ -1,0 +1,48 @@
+{
+  "schema": "sorter.run_report.v1",
+  "provenance": "synthetic",
+  "warning": "Synthetic logs are not evidence of physical robot performance.",
+  "logged_trials": 8,
+  "planned_trials": 8,
+  "unlogged_planned_trials": 0,
+  "primary_denominator_trials": 8,
+  "first_attempt_successes": 3,
+  "first_attempt_success_rate": 0.375,
+  "eventual_successes": 4,
+  "eventual_success_rate": 0.5,
+  "all_attempts": 9,
+  "failed_attempts": 5,
+  "all_attempt_success_rate": 0.4444444444444444,
+  "interventions": 1,
+  "outcomes": {
+    "aborted": 1,
+    "drop": 1,
+    "miss": 1,
+    "success": 4,
+    "timeout": 1,
+    "wrong_bin": 1
+  },
+  "all_attempt_durations": {
+    "count": 9,
+    "mean_s": 15.333333333333334,
+    "median_s": 15.0,
+    "p95_s": 25.199999999999996,
+    "max_s": 30.0
+  },
+  "successful_attempt_durations": {
+    "count": 4,
+    "mean_s": 14.5,
+    "median_s": 14.5,
+    "p95_s": 15.85,
+    "max_s": 16.0
+  },
+  "first_attempt_durations": {
+    "count": 8,
+    "mean_s": 15.25,
+    "median_s": 14.5,
+    "p95_s": 25.800000000000004,
+    "max_s": 30.0
+  },
+  "percentile_method": "linear interpolation at (n-1)*p; seconds",
+  "interpretation": "Primary rate counts correct placement without help on the first attempt; retries do not erase failures."
+}

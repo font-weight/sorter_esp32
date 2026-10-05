@@ -1,0 +1,9 @@
+.build/
+.tools/
+__pycache__/
+*.pyc
+captures/
+private_calibration/
+firmware/**/build/
+measurements/
+output/

@@ -1,0 +1,76 @@
+{
+  "status": "passed",
+  "core": "esp32:esp32@3.3.12",
+  "uploaded": false,
+  "note": "RAM values are linker static globals; runtime heap/PSRAM not measured",
+  "profiles": [
+    {
+      "profile": "guarded defaults",
+      "warnings": 0,
+      "results": [
+        {
+          "sketch": "camera_diagnostic",
+          "flash_bytes": 374957,
+          "flash_limit": 3145728,
+          "global_ram_bytes": 34156,
+          "ram_limit": 327680
+        },
+        {
+          "sketch": "camera_node",
+          "flash_bytes": 377241,
+          "flash_limit": 3145728,
+          "global_ram_bytes": 35556,
+          "ram_limit": 327680
+        },
+        {
+          "sketch": "servo_diagnostic",
+          "flash_bytes": 275827,
+          "flash_limit": 1310720,
+          "global_ram_bytes": 22360,
+          "ram_limit": 327680
+        },
+        {
+          "sketch": "motion_node",
+          "flash_bytes": 280148,
+          "flash_limit": 1310720,
+          "global_ram_bytes": 24108,
+          "ram_limit": 327680
+        },
+        {
+          "sketch": "arm_calibration",
+          "flash_bytes": 278131,
+          "flash_limit": 1310720,
+          "global_ram_bytes": 22464,
+          "ram_limit": 327680
+        }
+      ]
+    },
+    {
+      "profile": "compile-only hardware paths",
+      "warnings": 0,
+      "results": [
+        {
+          "sketch": "camera_node",
+          "flash_bytes": 380077,
+          "flash_limit": 3145728,
+          "global_ram_bytes": 36900,
+          "ram_limit": 327680
+        },
+        {
+          "sketch": "motion_node",
+          "flash_bytes": 294007,
+          "flash_limit": 1310720,
+          "global_ram_bytes": 24784,
+          "ram_limit": 327680
+        },
+        {
+          "sketch": "arm_calibration",
+          "flash_bytes": 287355,
+          "flash_limit": 1310720,
+          "global_ram_bytes": 23000,
+          "ram_limit": 327680
+        }
+      ]
+    }
+  ]
+}

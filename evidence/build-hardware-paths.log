@@ -1,0 +1,10 @@
+COMPILE-ONLY hardware paths: camera_node
+Sketch uses 380077 bytes (12%) of program storage space. Maximum is 3145728 bytes.
+Global variables use 36900 bytes (11%) of dynamic memory, leaving 290780 bytes for local variables. Maximum is 327680 bytes.
+COMPILE-ONLY hardware paths: motion_node
+Sketch uses 294007 bytes (22%) of program storage space. Maximum is 1310720 bytes.
+Global variables use 24784 bytes (7%) of dynamic memory, leaving 302896 bytes for local variables. Maximum is 327680 bytes.
+COMPILE-ONLY hardware paths: arm_calibration
+Sketch uses 287355 bytes (21%) of program storage space. Maximum is 1310720 bytes.
+Global variables use 23000 bytes (7%) of dynamic memory, leaving 304680 bytes for local variables. Maximum is 327680 bytes.
+Hardware-path compilation complete. Source defaults unchanged. Nothing uploaded.

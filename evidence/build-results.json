@@ -1,0 +1,37 @@
+{
+  "status": "passed",
+  "started_utc": "2026-10-03T15:20:24.3278648Z",
+  "finished_utc": "2026-10-03T15:21:17.7795891Z",
+  "expected_core": "esp32:esp32@3.3.12",
+  "core": "esp32:esp32@3.3.12",
+  "uploaded": false,
+  "requested_sketch": "all",
+  "results": [
+    {
+      "sketch": "camera_diagnostic",
+      "fqbn": "esp32:esp32:esp32cam",
+      "compiled": true
+    },
+    {
+      "sketch": "camera_node",
+      "fqbn": "esp32:esp32:esp32cam",
+      "compiled": true
+    },
+    {
+      "sketch": "servo_diagnostic",
+      "fqbn": "esp32:esp32:esp32",
+      "compiled": true
+    },
+    {
+      "sketch": "motion_node",
+      "fqbn": "esp32:esp32:esp32",
+      "compiled": true
+    },
+    {
+      "sketch": "arm_calibration",
+      "fqbn": "esp32:esp32:esp32",
+      "compiled": true
+    }
+  ],
+  "error": null
+}

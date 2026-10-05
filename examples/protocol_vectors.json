@@ -1,0 +1,27 @@
+{
+  "crc_algorithm": "CRC16-CCITT-FALSE",
+  "check_123456789_hex": "29B1",
+  "vectors": [
+    {
+      "type": "Q",
+      "session": 1,
+      "seq": 1,
+      "payload": "42",
+      "frame": "@1|Q|1|1|42*B364\n"
+    },
+    {
+      "type": "D",
+      "session": 4294967295,
+      "seq": 27,
+      "payload": "17,42,2;1,-250,800,321;3,100,1200,298",
+      "frame": "@1|D|4294967295|27|17,42,2;1,-250,800,321;3,100,1200,298*60CD\n"
+    },
+    {
+      "type": "E",
+      "session": 1,
+      "seq": 1,
+      "payload": "CONFLICT",
+      "frame": "@1|E|1|1|CONFLICT*5199\n"
+    }
+  ]
+}

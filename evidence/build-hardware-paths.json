@@ -1,0 +1,79 @@
+{
+  "status": "passed",
+  "started_utc": "2026-10-03T15:21:17.8165426Z",
+  "finished_utc": "2026-10-03T15:23:06.8271371Z",
+  "expected_core": "esp32:esp32@3.3.12",
+  "core": "esp32:esp32@3.3.12",
+  "profile": "compile-only hardware paths; do not flash",
+  "uploaded": false,
+  "results": [
+    {
+      "sketch": "camera_node",
+      "fqbn": "esp32:esp32:esp32cam",
+      "compiled": true,
+      "flags": {
+        "VISION_CONFIG_CONFIRMED": [
+          "false",
+          "true"
+        ],
+        "CAMERA_UART_PINS_CONFIRMED": [
+          "false",
+          "true"
+        ],
+        "CAMERA_PROFILE_CONFIRMED": [
+          "false",
+          "true"
+        ]
+      },
+      "build_directory": "C:\\Users\\Alexandr\\AppData\\Local\\Temp\\sorter32-20261003\\hardware-paths-20261003-152118\\build-camera_node",
+      "uploaded": false
+    },
+    {
+      "sketch": "motion_node",
+      "fqbn": "esp32:esp32:esp32",
+      "compiled": true,
+      "flags": {
+        "MOTOR_OUTPUTS_ENABLED": [
+          "false",
+          "true"
+        ],
+        "UART_PROFILE_CONFIRMED": [
+          "false",
+          "true"
+        ],
+        "VIRTUAL_MODE": [
+          "true",
+          "false"
+        ],
+        "PINOUT_CONFIRMED": [
+          "false",
+          "true"
+        ]
+      },
+      "build_directory": "C:\\Users\\Alexandr\\AppData\\Local\\Temp\\sorter32-20261003\\hardware-paths-20261003-152118\\build-motion_node",
+      "uploaded": false
+    },
+    {
+      "sketch": "arm_calibration",
+      "fqbn": "esp32:esp32:esp32",
+      "compiled": true,
+      "flags": {
+        "OUTPUTS_ENABLED": [
+          "false",
+          "true"
+        ],
+        "PINOUT_CONFIRMED": [
+          "false",
+          "true"
+        ],
+        "LIMITS_CONFIRMED": [
+          "false",
+          "true"
+        ]
+      },
+      "build_directory": "C:\\Users\\Alexandr\\AppData\\Local\\Temp\\sorter32-20261003\\hardware-paths-20261003-152118\\build-arm_calibration",
+      "uploaded": false
+    }
+  ],
+  "error": null
+}
