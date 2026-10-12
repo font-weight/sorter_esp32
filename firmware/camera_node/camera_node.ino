@@ -78,7 +78,15 @@ void emitError(const sorter::Packet& request, const char* reason, bool cache) {
 sorter::DetectionResult scanFrame() {
   sorter::DetectionResult result = {sorter::DetectionStatus::BadImage, 0, {0,0,0,0,0,0}};
   if (!cameraReady) return result;
+  const bool illuminate = CAMERA_PROFILE_CONFIRMED && SCAN_FLASH_ENABLED;
+  if (illuminate) {
+    digitalWrite(camera_board::FLASH_LED_PIN, HIGH);
+    delay(SCAN_FLASH_SETTLE_MS);
+  }
+  // freshFrame discards the queued frame and timestamps the request after
+  // the light has settled, so an older unlit image is not used for detection.
   camera_fb_t* fb = camera_board::freshFrame(WIDTH, HEIGHT);
+  if (illuminate) digitalWrite(camera_board::FLASH_LED_PIN, LOW);
   if (!fb) return result;
   result = sorter::detectRgb565BE(fb->buf, fb->len, WIDTH, HEIGHT, DETECTOR_CONFIG,
                                  workspace, blobs, sorter::kMaxObjects);
@@ -147,7 +155,7 @@ void handleConsole() {
   const char* cmd = console.line();
   if (!strcmp(cmd, "STATUS")) { printStatus(); return; }
   if (!strcmp(cmd, "HELP")) {
-    Serial.println("STATUS, STATS, SCAN (pixel blobs), CAPTURE (binary), LED ON, LED OFF, HELP; CAPTURE/SCAN blocked if UART enabled");
+    Serial.println("STATUS, STATS, SCAN (pixel blobs), SCAN_MM (calibrated millimetres), CAPTURE (binary), LED ON, LED OFF, HELP; CAPTURE/SCAN/SCAN_MM blocked if UART enabled");
     return;
   }
   if (!strcmp(cmd, "LED ON") || !strcmp(cmd, "LED OFF")) {
@@ -166,18 +174,45 @@ void handleConsole() {
     if (!fb) { Serial.println("ERROR CAPTURE_FAILED"); return; }
     camera_board::printStats(fb); esp_camera_fb_return(fb); return;
   }
-  if (!strcmp(cmd, "SCAN")) {
+  const bool scanMillimeters = !strcmp(cmd, "SCAN_MM");
+  if (!strcmp(cmd, "SCAN") || scanMillimeters) {
+    if (scanMillimeters && !calibrationReady) {
+      Serial.println("ERROR CALIBRATION_INVALID: check STATUS and GeneratedCalibration.h"); return;
+    }
     const sorter::DetectionResult found = scanFrame();
-    Serial.printf("SCAN status=%u count=%u components=%u small=%u large=%u edge=%u ambiguous=%u\n",
-                  unsigned(found.status), unsigned(found.count), unsigned(found.stats.components),
+    Serial.printf("%s status=%u count=%u components=%u small=%u large=%u edge=%u ambiguous=%u\n",
+                  cmd, unsigned(found.status), unsigned(found.count), unsigned(found.stats.components),
                   unsigned(found.stats.rejectedSmall), unsigned(found.stats.rejectedLarge),
                   unsigned(found.stats.rejectedEdge), unsigned(found.stats.ambiguousPixels));
     if (found.status == sorter::DetectionStatus::Ok) {
+      size_t mapped = 0;
       for (size_t i = 0; i < found.count; ++i) {
         const sorter::PixelBlob& b = blobs[i];
+        if (scanMillimeters) {
+          // Match the UART scene's supported-area checks and 0.1 mm rounding.
+          int32_t x10 = 0, y10 = 0;
+          if (!mapping.contains(b.left, b.top) || !mapping.contains(b.right, b.top) ||
+              !mapping.contains(b.right, b.bottom) || !mapping.contains(b.left, b.bottom)) {
+            Serial.printf("UNMAPPED class=%u u=%.3f v=%.3f reason=OUTSIDE_CALIBRATION\n",
+                          b.classId, b.centerX, b.centerY);
+            continue;
+          }
+          if (!mapping.mapTenths(b.centerX, b.centerY, x10, y10)) {
+            Serial.printf("UNMAPPED class=%u u=%.3f v=%.3f reason=MAPPING_FAILED\n",
+                          b.classId, b.centerX, b.centerY);
+            continue;
+          }
+          ++mapped;
+          Serial.printf("BLOB_MM class=%u x_mm=%.1f y_mm=%.1f pixels=%u u=%.3f v=%.3f\n",
+                        b.classId, x10 / 10.0, y10 / 10.0, unsigned(b.pixels), b.centerX, b.centerY);
+          continue;
+        }
         Serial.printf("BLOB class=%u u=%.3f v=%.3f pixels=%u box=%u,%u,%u,%u\n",
                       b.classId, b.centerX, b.centerY, unsigned(b.pixels), b.left,b.top,b.right,b.bottom);
       }
+      if (scanMillimeters)
+        Serial.printf("SCAN_MM mapped=%u skipped=%u ID=%u\n", unsigned(mapped),
+                      unsigned(found.count - mapped), unsigned(sorter_calibration::CALIBRATION_ID));
     }
     return;
   }
@@ -228,7 +263,7 @@ void setup() {
     } else Serial.println("ERROR UART_PIN_PROFILE_UNSUPPORTED");
   }
   printStatus();
-  Serial.println("Commands: STATUS, STATS, SCAN, CAPTURE, LED ON, LED OFF, HELP");
+  Serial.println("Commands: STATUS, STATS, SCAN, SCAN_MM, CAPTURE, LED ON, LED OFF, HELP");
 }
 
 void loop() {

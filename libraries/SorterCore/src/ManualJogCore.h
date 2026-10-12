@@ -33,17 +33,26 @@ class ManualJogController {
   ManualJogController(const JogSettings& settings, JogIO& io)
       : s_(settings), io_(io), state_(JogState::Disarmed), error_(JogError::None),
         seeded_(false), supported_(false), outputs_(false), current_{}, target_{},
+        from_{}, poseMove_(false), moveDuration_(0), moveProgress_(0),
         started_(0), action_(0), loop_(0), write_(0) {}
   JogState state() const { return state_; }
   JogError error() const { return error_; }
   bool outputsOn() const { return outputs_; }
   bool seedPresent() const { return seeded_; }
   const JointPose& commandedPose() const { return current_; }
+  uint32_t holdRemainingMs(uint32_t now) const {
+    const uint32_t elapsed = uint32_t(now - action_);
+    return outputs_ && elapsed < s_.holdLeaseMs ? s_.holdLeaseMs - elapsed : 0;
+  }
+  uint32_t sessionRemainingMs(uint32_t now) const {
+    const uint32_t elapsed = uint32_t(now - started_);
+    return outputs_ && elapsed < s_.maxSessionMs ? s_.maxSessionMs - elapsed : 0;
+  }
   bool configurationValid() const {
     if (!s_.outputsEnabled || !s_.pinoutConfirmed || !s_.limitsConfirmed ||
-        s_.maxStepUs < 1 || s_.maxStepUs > 25 || s_.rateUsPerSecond < 50 ||
-        s_.rateUsPerSecond > 100 || s_.holdLeaseMs < 1000 || s_.holdLeaseMs > 15000 ||
-        s_.maxSessionMs < s_.holdLeaseMs || s_.maxSessionMs > 120000 ||
+        s_.maxStepUs < 1 || s_.maxStepUs > 100 || s_.rateUsPerSecond < 50 ||
+        s_.rateUsPerSecond > 300 || s_.holdLeaseMs < 1000 || s_.holdLeaseMs > 300000 ||
+        s_.maxSessionMs < s_.holdLeaseMs || s_.maxSessionMs > 1800000 ||
         s_.maxLoopGapMs < 20 || s_.maxLoopGapMs > 250) return false;
     for (uint8_t j = 0; j < 4; ++j)
       if (s_.minUs[j] < 500 || s_.maxUs[j] > 2500 || s_.minUs[j] >= s_.maxUs[j]) return false;
@@ -84,7 +93,28 @@ class ManualJogController {
     const int32_t next = int32_t(current_.us[joint]) + delta;
     if (next < s_.minUs[joint] || next > s_.maxUs[joint]) { error_ = JogError::Range; return false; }
     target_ = current_; target_.us[joint] = uint16_t(next);
+    poseMove_ = false;
     state_ = JogState::Jogging; action_ = now; error_ = JogError::None; return true;
+  }
+  // Absolute manual PWM target, not a Cartesian path or homing operation.
+  // Validate all channels before accepting any part of the move. No queue.
+  bool movePose(const JointPose& pose, uint32_t now, bool permit, bool supply) {
+    if (!ready(now, permit, supply)) return false;
+    if (state_ != JogState::Holding) { error_ = JogError::Busy; return false; }
+    if (!configurationValid()) { stop(JogError::Config, true); return false; }
+    if (!within(pose)) { error_ = JogError::Range; return false; }
+    uint32_t distance = 0;
+    for (uint8_t j = 0; j < 4; ++j) {
+      const int32_t delta = int32_t(pose.us[j]) - current_.us[j];
+      const uint32_t magnitude = uint32_t(delta < 0 ? -delta : delta);
+      if (magnitude > distance) distance = magnitude;
+    }
+    action_ = now; error_ = JogError::None;
+    if (!distance) return true; // Renew the lease without issuing a PWM write.
+    from_ = current_; target_ = pose;
+    moveDuration_ = (distance * 1000U + s_.rateUsPerSecond - 1U) / s_.rateUsPerSecond;
+    moveProgress_ = 0; poseMove_ = true; write_ = now;
+    state_ = JogState::Jogging; return true;
   }
   bool hold(uint32_t now, bool permit, bool supply) {
     if (!ready(now, permit, supply) || state_ != JogState::Holding) return false;
@@ -96,6 +126,26 @@ class ManualJogController {
     loop_ = now;
     if (state_ != JogState::Jogging || uint32_t(now-write_) < 20) return;
     // A late tick never catches up with a larger jump.
+    if (poseMove_) {
+      const uint32_t progress = moveDuration_ - moveProgress_ > 20U ?
+        moveProgress_ + 20U : moveDuration_;
+      JointPose next;
+      for (uint8_t j = 0; j < 4; ++j) {
+        const int32_t delta = int32_t(target_.us[j]) - from_.us[j];
+        const uint32_t magnitude = uint32_t(delta < 0 ? -delta : delta);
+        const uint32_t advance = uint32_t((uint64_t(magnitude)*progress +
+                                          moveDuration_/2U) / moveDuration_);
+        next.us[j] = uint16_t(int32_t(from_.us[j]) +
+                             (delta < 0 ? -int32_t(advance) : int32_t(advance)));
+      }
+      if (!within(next) || !io_.writePose(next)) { stop(JogError::Output, true); return; }
+      current_ = next; write_ = now; moveProgress_ = progress;
+      if (progress == moveDuration_) {
+        poseMove_ = false; state_ = JogState::Holding;
+        if (error_ == JogError::Busy) error_ = JogError::None;
+      }
+      return;
+    }
     const uint16_t step = uint16_t(s_.rateUsPerSecond * 20U / 1000U);
     JointPose next = current_;
     bool finished = true;
@@ -107,13 +157,18 @@ class ManualJogController {
     }
     if (!within(next) || !io_.writePose(next)) { stop(JogError::Output, true); return; }
     current_ = next; write_ = now;
-    if (finished) state_ = JogState::Holding;
+    if (finished) {
+      state_ = JogState::Holding;
+      if (error_ == JogError::Busy) error_ = JogError::None;
+    }
   }
  private:
   const JogSettings& s_; JogIO& io_;
   JogState state_; JogError error_;
   bool seeded_, supported_, outputs_;
-  JointPose current_, target_;
+  JointPose current_, target_, from_;
+  bool poseMove_;
+  uint32_t moveDuration_, moveProgress_;
   uint32_t started_, action_, loop_, write_;
   bool within(const JointPose& pose) const {
     for (uint8_t j = 0; j < 4; ++j)
@@ -123,6 +178,7 @@ class ManualJogController {
   void stop(JogError error, bool fault) {
     if (outputs_) io_.detachOutputs();
     outputs_ = seeded_ = supported_ = false; target_ = current_;
+    poseMove_ = false; moveDuration_ = moveProgress_ = 0;
     error_ = error; state_ = fault ? JogState::Fault : JogState::Disarmed;
   }
   bool ready(uint32_t now, bool permit, bool supply) {

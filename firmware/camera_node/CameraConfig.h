@@ -4,12 +4,18 @@
 
 // Confirm each profile only after the corresponding physical check.
 constexpr bool CAMERA_PROFILE_CONFIRMED = true;
-constexpr bool CAMERA_UART_PINS_CONFIRMED = false;
-constexpr bool VISION_CONFIG_CONFIRMED = false;
+// Enable the specified UART profile for the next live-link commissioning step.
+constexpr bool CAMERA_UART_PINS_CONFIRMED = true;
+// Use the owner's previously checked red/blue thresholds and camera mapping.
+constexpr bool VISION_CONFIG_CONFIRMED = true;
 constexpr unsigned USB_BAUD = 460800;
 constexpr unsigned CAMERA_UART_BAUD = 115200;
 constexpr int CAMERA_UART_RX = 14; // Project KiCad: controller TX17 -> camera RX14; no SD.
 constexpr int CAMERA_UART_TX = 13; // Project KiCad: camera TX13 -> controller RX16.
+
+// GPIO4 flash illuminates each fresh scan requested over UART or USB.
+constexpr bool SCAN_FLASH_ENABLED = true;
+constexpr unsigned SCAN_FLASH_SETTLE_MS = 100;
 
 // Fixed OV2640 settings: starting values, not measured values. CAPTURE and
 // recognition use the SAME settings. Recalibrate after changing these.

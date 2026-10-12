@@ -1,6 +1,7 @@
 #include "MotionCore.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <vector>
 
@@ -63,6 +64,7 @@ void fullyMeasured(MotionCalibration& c) {
 
 void testCalibration() {
   MotionCalibration c = exampleVirtualCalibration();
+  assert(!c.centerLowEnabled && !c.centerHighEnabled);
   assert(calibrationValid(c,false)); assert(!calibrationValid(c,true));
   CalibratedPose p = {};
   assert(interpolateGrid(c,0,1000,false,p)); assert(p.joints.us[0] == 1500);
@@ -82,6 +84,177 @@ void testCalibration() {
   assert(!calibrationValid(c,false));
   c = exampleVirtualCalibration(); c.pickMaxX10 = c.pickMinX10;
   assert(!calibrationValid(c,false));
+}
+
+// Upper nodes reproduce the current measured example; the lower center is
+// deliberately synthetic test data and is never a physical calibration.
+MotionCalibration centerCalibration() {
+  MotionCalibration c = exampleVirtualCalibration();
+  c.pickMinX10 = 200; c.pickMaxX10 = 1300;
+  c.pickMinY10 = 250; c.pickMaxY10 = 800;
+  c.lowZ10 = 100; c.highZ10 = 1000;
+  c.minX10 = -1000; c.maxX10 = 3000; c.maxY10 = 2000;
+  c.openUs = 2100; c.closedUs = 1250;
+  for (size_t j = 0; j < 4; ++j) { c.pulseMin[j] = 500; c.pulseMax[j] = 2500; }
+  c.grid[0] = {{{1700,2000,500,2100}}, {{1700,1350,1250,2100}}, true, true};
+  c.grid[1] = {{{1150,2000,500,2100}}, {{1200,1350,1250,2100}}, true, true};
+  c.grid[2] = {{{1600,2150,850,2100}}, {{1600,1700,1350,2100}}, true, true};
+  c.grid[3] = {{{1250,2150,850,2100}}, {{1250,1700,1350,2100}}, true, true};
+  c.centerHighEnabled = true;
+  c.centerHighOpen = {{{1441,1426,1220,2100}}, {750,525,990}, true};
+  c.centerLowOpen = {{{1400,2050,650,2100}}, {750,525,105}, true};
+  c.parkOpen.joints.us[3] = c.hubOpen.joints.us[3] = c.openUs;
+  for (size_t i = 0; i < kColorCount; ++i)
+    c.binHighOpen[i].joints.us[3] = c.binDropOpen[i].joints.us[3] = c.openUs;
+  fullyMeasured(c);
+  return c;
+}
+
+void testCenterInterpolation() {
+  MotionCalibration c = centerCalibration();
+  CalibratedPose p = {};
+  assert(calibrationValid(c,false)); assert(!calibrationValid(c,true));
+  assert(interpolateGrid(c,750,525,true,p));
+  assert(memcmp(&p.joints,&c.centerHighOpen.joints,sizeof(p.joints)) == 0);
+  assert(p.tip.x10 == 750 && p.tip.y10 == 525 && p.tip.z10 == 990 && !p.measured);
+  // The lower level remains the exact old bilinear calculation.
+  assert(interpolateGrid(c,750,525,false,p));
+  assert(p.joints.us[0] == 1425 && p.joints.us[1] == 2075 && p.joints.us[2] == 675);
+  assert(p.tip.z10 == 100);
+  MotionCalibration legacy = c;
+  legacy.centerHighEnabled = false;
+  legacy.centerLowOpen = legacy.centerHighOpen = {}; // Inactive fields are ignored.
+  for (size_t corner = 0; corner < 4; ++corner) {
+    const int32_t x = (corner & 1) ? c.pickMaxX10 : c.pickMinX10;
+    const int32_t y = (corner & 2) ? c.pickMaxY10 : c.pickMinY10;
+    assert(interpolateGrid(c,x,y,true,p));
+    assert(memcmp(&p.joints,&c.grid[corner].highOpen,sizeof(p.joints)) == 0);
+    assert(p.tip.z10 == c.highZ10);
+  }
+  // Every rectangle edge retains its original linear/bilinear values.
+  for (int32_t x = c.pickMinX10; x <= c.pickMaxX10; x += 11)
+    for (int32_t y : {c.pickMinY10,c.pickMaxY10}) {
+      CalibratedPose old = {};
+      assert(interpolateGrid(c,x,y,true,p) && interpolateGrid(legacy,x,y,true,old));
+      assert(memcmp(&p.joints,&old.joints,sizeof(p.joints)) == 0);
+      assert(p.tip.z10 == old.tip.z10);
+    }
+  for (int32_t y = c.pickMinY10; y <= c.pickMaxY10; y += 5)
+    for (int32_t x : {c.pickMinX10,c.pickMaxX10}) {
+      CalibratedPose old = {};
+      assert(interpolateGrid(c,x,y,true,p) && interpolateGrid(legacy,x,y,true,old));
+      assert(memcmp(&p.joints,&old.joints,sizeof(p.joints)) == 0);
+      assert(p.tip.z10 == old.tip.z10);
+    }
+  // On each center-to-corner seam, both adjacent triangles share this line.
+  for (size_t corner = 0; corner < 4; ++corner) {
+    const int32_t x = ((corner & 1) ? c.pickMaxX10 : c.pickMinX10);
+    const int32_t y = ((corner & 2) ? c.pickMaxY10 : c.pickMinY10);
+    for (int32_t n = 1; n < 5; ++n) {
+      const int32_t sx = (750*(5-n)+x*n)/5, sy = (525*(5-n)+y*n)/5;
+      assert(interpolateGrid(c,sx,sy,true,p));
+      for (size_t j = 0; j < 4; ++j)
+        assert(p.joints.us[j] == uint16_t((c.centerHighOpen.joints.us[j]*(5-n) +
+          c.grid[corner].highOpen.us[j]*n)/5.0 + 0.5));
+      assert(p.tip.z10 == (990*(5-n)+1000*n)/5);
+      for (int32_t dx : {-1,1}) {
+        CalibratedPose adjacent = {};
+        assert(interpolateGrid(c,sx+dx,sy,true,adjacent));
+        for (size_t j = 0; j < 4; ++j)
+          assert(abs(int(p.joints.us[j])-int(adjacent.joints.us[j])) <= 2);
+        assert(abs(p.tip.z10-adjacent.tip.z10) <= 1);
+      }
+    }
+  }
+  c.centerLowEnabled = true;
+  assert(calibrationValid(c,true));
+  assert(interpolateGrid(c,750,525,false,p));
+  assert(memcmp(&p.joints,&c.centerLowOpen.joints,sizeof(p.joints)) == 0);
+  assert(p.tip.z10 == 105);
+  for (int32_t x = c.pickMinX10; x <= c.pickMaxX10; x += 11)
+    for (int32_t y = c.pickMinY10; y <= c.pickMaxY10; y += 5) {
+      CalibratedPose low = {}, high = {};
+      assert(interpolateGrid(c,x,y,false,low) && interpolateGrid(c,x,y,true,high));
+      assert(low.tip.z10 < high.tip.z10);
+      for (unsigned level = 0; level < 2; ++level) {
+        const CalibratedPose& value = level ? high : low;
+        const CalibratedPose& center = level ? c.centerHighOpen : c.centerLowOpen;
+        assert(poseWithinLimits(value.joints,c) && pointWithinBounds(value.tip,c));
+        for (size_t j = 0; j < 4; ++j) {
+          uint16_t minimum = center.joints.us[j], maximum = minimum;
+          for (size_t k = 0; k < 4; ++k) {
+            const uint16_t v = level ? c.grid[k].highOpen.us[j] : c.grid[k].lowOpen.us[j];
+            if (v < minimum) minimum = v;
+            if (v > maximum) maximum = v;
+          }
+          assert(value.joints.us[j] >= minimum && value.joints.us[j] <= maximum);
+        }
+      }
+    }
+  assert(!interpolateGrid(c,c.pickMinX10-1,525,true,p));
+  assert(!interpolateGrid(c,INT32_MAX,INT32_MIN,true,p));
+  c.centerHighEnabled = false; // Partial refinement may also start at the low level.
+  assert(calibrationValid(c,false)); assert(!calibrationValid(c,true));
+  assert(interpolateGrid(c,750,525,true,p)); assert(p.joints.us[1] == 1525);
+  // The fan uses the measured interior coordinates, not an assumed midpoint.
+  c = centerCalibration(); c.centerHighOpen.tip.x10 = 700; c.centerHighOpen.tip.y10 = 500;
+  assert(calibrationValid(c,false) && interpolateGrid(c,700,500,true,p));
+  assert(memcmp(&p.joints,&c.centerHighOpen.joints,sizeof(p.joints)) == 0);
+  for (int32_t x = c.pickMinX10; x <= c.pickMaxX10; x += 11)
+    for (int32_t y = c.pickMinY10; y <= c.pickMaxY10; y += 5) {
+      assert(interpolateGrid(c,x,y,true,p) && poseWithinLimits(p.joints,c));
+      assert(p.tip.z10 >= 990 && p.tip.z10 <= 1000);
+    }
+}
+
+void testCenterValidationAndRoutes() {
+  const MotionCalibration valid = centerCalibration();
+  auto rejected = [](const MotionCalibration& c) {
+    CalibratedPose p = {};
+    assert(!calibrationValid(c,false));
+    assert(!interpolateGrid(c,750,525,true,p));
+  };
+  MotionCalibration c = valid;
+  c.centerHighOpen.measured = false; rejected(c);
+  c = valid; c.centerHighOpen.tip.x10 = c.pickMinX10; rejected(c);
+  c = valid; c.centerHighOpen.tip.y10 = c.pickMaxY10+1; rejected(c);
+  c = valid; c.centerHighOpen.tip.x10 = INT32_MAX; rejected(c);
+  c = valid; c.centerHighOpen.joints.us[3] = c.closedUs; rejected(c);
+  c = valid; c.centerHighOpen.joints.us[1] = 499; rejected(c);
+  c = valid; c.centerHighOpen.tip.z10 = c.maxZ10+1; rejected(c);
+  c = valid; c.centerHighOpen.tip.z10 = c.lowZ10; rejected(c);
+  c = valid; c.grid[1].measuredHigh = false; rejected(c);
+  c = valid; c.grid[0].highOpen.us[3] = c.closedUs; rejected(c);
+  c = valid; c.grid[3].highOpen.us[2] = 2501; rejected(c);
+  c = valid; c.centerLowEnabled = true; c.centerLowOpen.tip.x10++; rejected(c);
+  c = valid; c.centerLowEnabled = true; c.centerLowOpen.tip.z10 = 995; rejected(c);
+  c = valid; c.centerLowEnabled = true; c.centerLowOpen.tip.z10 = c.highZ10; rejected(c);
+  c = valid; c.centerLowEnabled = true; c.centerLowOpen.measured = false; rejected(c);
+  // Invalid fields at an inactive level cannot accidentally enable a center.
+  c = valid; c.centerLowOpen = {}; assert(calibrationValid(c,false));
+  c = valid; c.centerHighEnabled = false; c.centerHighOpen = {};
+  c.grid[0].measuredHigh = false; assert(calibrationValid(c,false));
+  // Hardware gates reject a partial map even when all other approvals are set.
+  Rig hardware;
+  hardware.c = valid; hardware.s.virtualMode = false;
+  hardware.s.outputsEnabled = hardware.s.pinoutConfirmed = true;
+  hardware.m.confirmOperatorPark();
+  assert(!hardware.m.arm(hardware.now,123,true,true));
+  assert(hardware.m.error() == MotionError::BadConfig && hardware.io.enables == 0);
+  for (uint8_t cls : kColorClassIds) {
+    Rig r; r.c = valid; r.c.centerLowEnabled = true;
+    r.arm(); r.until(MotionState::WaitScene);
+    assert(r.scene(one(cls,750,525)));
+    r.until(MotionState::WaitScene);
+    bool highSeen = false, lowSeen = false;
+    for (const Write& write : r.io.writes) {
+      if (memcmp(&write.pose,&r.c.centerHighOpen.joints,sizeof(write.pose)) == 0) highSeen = true;
+      if (memcmp(&write.pose,&r.c.centerLowOpen.joints,sizeof(write.pose)) == 0) lowSeen = true;
+      assert(poseWithinLimits(write.pose,r.c));
+    }
+    assert(highSeen && lowSeen); assert(r.scene(empty()));
+    assert(r.m.state() == MotionState::Done && !r.m.outputsOn());
+  }
 }
 void testNoAutomaticOutputs() {
   Rig r; for (unsigned i = 0; i < 100; ++i) r.tick();
@@ -243,11 +416,12 @@ void testWrapAround() {
 int main() {
   assert(kColorCount == 2 && classBinIndex(1) == 0 && classBinIndex(3) == 1);
   assert(!isSupportedClass(2) && classBinIndex(2) == 255);
-  testCalibration(); testNoAutomaticOutputs(); testHardwareGates(); testRetryAndTimeout();
+  testCalibration(); testCenterInterpolation(); testCenterValidationAndRoutes();
+  testNoAutomaticOutputs(); testHardwareGates(); testRetryAndTimeout();
   testLateReplyIsNotConsumed();
   testOneCompleteCycleAndBounds(); testAllBinsAndGridCorners(); testCameraRestartAndMismatches();
   testNoProgressAndAttemptLimit(); testPauseAndStaleCapture(); testEstopAndPauseLimit();
   testFailureAndWatchdog(); testMalformedAndUnreachable(); testWrapAround();
-  puts("motion tests: PASS (14 suites; protocol ordering, routes, limits and stop semantics)");
+  puts("motion tests: PASS (16 suites; center mesh, routes, limits and stop semantics)");
   return 0;
 }

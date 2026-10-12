@@ -33,10 +33,13 @@ try {
         if (Test-Path -LiteralPath $localZig) { $ZigPath = $localZig }
         else { $ZigPath = (Get-Command zig -ErrorAction Stop).Source }
     }
-    foreach ($suite in @('protocol', 'vision', 'motion', 'jog', 'pipeline')) {
+    foreach ($suite in @('protocol', 'vision', 'motion', 'jog', 'camera_aim', 'pick_check', 'pipeline')) {
         Write-Host "Compile native $suite"
         $exe = Join-Path $buildRoot "test_$suite.exe"
+        $nativeIncludes = @()
+        if ($suite -eq 'pick_check') { $nativeIncludes = @('-I', (Join-Path $sorterRoot 'tests/arduino_fake')) }
         & $ZigPath c++ -target x86_64-windows-gnu -std=c++17 -Wall -Wextra -Werror `
+            @nativeIncludes `
             -I (Join-Path $sorterRoot 'libraries/SorterCore/src') `
             (Join-Path $sorterRoot "tests/test_$suite.cpp") -o $exe
         if ($LASTEXITCODE -ne 0) { throw "Native compilation failed: $suite" }

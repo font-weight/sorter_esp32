@@ -104,6 +104,8 @@ class MotionController {
   uint8_t clearedTargets() const { return clearedTargets_; }
   bool outputsOn() const { return outputsOn_; }
   const JointPose& commandedPose() const { return current_; }
+  // The last selected object; meaningful after an accepted scene starts a route.
+  const Detection& selectedTarget() const { return target_; }
   const char* phaseName() const {
     return (state_ == MotionState::Moving || (state_ == MotionState::Paused &&
             pauseState_ == MotionState::Moving)) && routeIndex_ < routeSize_

@@ -13,3 +13,5 @@ bin1_high,,,,,,,,false,,red_class_1
 bin1_drop,,,,,,,,false,,red_class_1
 bin2_high,,,,,,,,false,,blue_class_3
 bin2_drop,,,,,,,,false,,blue_class_3
+grid_center_high,,,,,,,,false,,optional_measured_center
+grid_center_low,,,,,,,,false,,optional_measured_center

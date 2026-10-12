@@ -3,8 +3,8 @@
 #include "LocalConfig.h"
 
 bool inputsReady = false, attached = false, faultLatched = false;
-volatile bool inputLossLatched = false;
-void ARDUINO_ISR_ATTR inputLostISR() { inputLossLatched = true; }
+volatile bool enableLossLatched = false;
+void ARDUINO_ISR_ATTR enableLostISR() { enableLossLatched = true; }
 uint8_t activeIndex = 0;
 uint16_t currentUs = 1500, targetUs = 1500;
 uint32_t lastAction = 0, lastWrite = 0, lastLoop = 0;
@@ -13,8 +13,7 @@ uint8_t commandLength = 0;
 bool commandOverflow = false;
 
 bool permitNow() {
-  return inputsReady && !inputLossLatched && digitalRead(diagnostic::ENABLE_PIN) == HIGH &&
-    digitalRead(diagnostic::POWER_GOOD_PIN) == HIGH;
+  return inputsReady && !enableLossLatched && digitalRead(diagnostic::ENABLE_PIN) == HIGH;
 }
 bool writePulse(uint16_t us) {
   return attached && permitNow() && ledcWrite(diagnostic::SERVO_PINS[activeIndex],
@@ -32,9 +31,11 @@ void stopOutput(const char* reason, bool fault) {
   Serial.print("DISARMED "); Serial.println(reason);
 }
 void status() {
-  Serial.printf("STATUS outputs_config=%u pinout_confirmed=%u armed=%u fault=%u index=%u us=%u target=%u permit=%u\n",
+  const uint32_t elapsed = uint32_t(millis() - lastAction);
+  const uint32_t idleLeft = attached && elapsed < diagnostic::INACTIVITY_MS ? diagnostic::INACTIVITY_MS - elapsed : 0;
+  Serial.printf("STATUS outputs_config=%u pinout_confirmed=%u armed=%u fault=%u index=%u us=%u target=%u permit=%u power_monitor=NONE idle_left_s=%lu\n",
     diagnostic::OUTPUTS_ENABLED, diagnostic::PINOUT_CONFIRMED, attached, faultLatched,
-    activeIndex, currentUs, targetUs, permitNow());
+    activeIndex, currentUs, targetUs, permitNow(), (unsigned long)((idleLeft + 999U) / 1000U));
 }
 bool parseArm(const char* line, uint32_t& index, uint32_t& us) {
   // Strict two unsigned decimal fields; never let '-1' wrap into an unsigned value.
@@ -47,9 +48,13 @@ bool parseArm(const char* line, uint32_t& index, uint32_t& us) {
   return sorter::parseU32(temp, index) && sorter::parseU32(space, us);
 }
 void handleCommand(const char* line) {
+  if (attached && permitNow() && (!strcmp(line, "STATUS") || !strcmp(line, "HELP"))) lastAction = millis();
   if (!strcmp(line, "HELP")) {
     Serial.println("Bench only; disconnect linkage. ARM <index0..3> <initial_us>; US <target_us>; DISARM; ESTOP; RESET; STATUS.");
-    Serial.println("No sweep. Initial positioning can jump. Only one servo output attaches. US steps <=25 us.");
+    Serial.printf("Only one unloaded servo attaches. US step <=%u us; idle %lu s. STATUS/HELP renew idle.\n",
+      diagnostic::MAX_COMMAND_STEP_US, (unsigned long)(diagnostic::INACTIVITY_MS / 1000U));
+    Serial.println("No sweep. Initial positioning can jump.");
+    Serial.println("Servo supply is not monitored. Disable ENABLE before changing servo power.");
   } else if (!strcmp(line, "STATUS")) status();
   else if (!strcmp(line, "DISARM")) stopOutput("operator", false);
   else if (!strcmp(line, "ESTOP")) stopOutput("ESTOP; RESET required", true);
@@ -60,10 +65,10 @@ void handleCommand(const char* line) {
     if (!diagnostic::OUTPUTS_ENABLED || !diagnostic::PINOUT_CONFIRMED || !diagnostic::configurationValid()) {
       Serial.println("REFUSED: hardware configuration disabled/unconfirmed"); return;
     }
-    if (!attached && !faultLatched && inputsReady && digitalRead(diagnostic::ENABLE_PIN) == HIGH &&
-        digitalRead(diagnostic::POWER_GOOD_PIN) == HIGH) inputLossLatched = false;
+    if (!attached && !faultLatched && inputsReady && digitalRead(diagnostic::ENABLE_PIN) == HIGH)
+      enableLossLatched = false;
     if (attached || faultLatched || !permitNow()) {
-      Serial.println("REFUSED: already armed, latched fault, or physical enable/power absent"); return;
+      Serial.println("REFUSED: already armed, latched fault, or physical enable absent"); return;
     }
     if (!parseArm(line + 4, index, us) || index > 3 ||
         us < diagnostic::MIN_US[index] || us > diagnostic::MAX_US[index]) {
@@ -81,7 +86,7 @@ void handleCommand(const char* line) {
     }
     const int32_t delta = int32_t(us) - currentUs;
     if (delta < -int32_t(diagnostic::MAX_COMMAND_STEP_US) || delta > int32_t(diagnostic::MAX_COMMAND_STEP_US)) {
-      Serial.println("REFUSED: change must be <=25 us from current command"); return;
+      Serial.printf("REFUSED: change must be <=%u us from current command\n", diagnostic::MAX_COMMAND_STEP_US); return;
     }
     targetUs = uint16_t(us); lastAction = millis(); status();
   } else Serial.println("Unknown command; HELP");
@@ -89,22 +94,25 @@ void handleCommand(const char* line) {
 void setup() {
   Serial.begin(115200);
   if (diagnostic::PINOUT_CONFIRMED && diagnostic::configurationValid()) {
+    for (uint8_t j = 0; j < 4; ++j) {
+      pinMode(diagnostic::SERVO_PINS[j], OUTPUT);
+      digitalWrite(diagnostic::SERVO_PINS[j], LOW);
+    }
     pinMode(diagnostic::ENABLE_PIN, INPUT_PULLDOWN);
-    pinMode(diagnostic::POWER_GOOD_PIN, INPUT_PULLDOWN);
-    attachInterrupt(digitalPinToInterrupt(diagnostic::ENABLE_PIN), inputLostISR, FALLING);
-    attachInterrupt(digitalPinToInterrupt(diagnostic::POWER_GOOD_PIN), inputLostISR, FALLING);
+    attachInterrupt(digitalPinToInterrupt(diagnostic::ENABLE_PIN), enableLostISR, FALLING);
     inputsReady = true;
   }
   lastLoop = millis();
-  Serial.println("SG90 bench diagnostic. Outputs disabled by default. No automatic movement. HELP.");
+  Serial.printf("SG90 bench diagnostic. outputs_config=%u pinout_confirmed=%u. No automatic movement. HELP.\n",
+    diagnostic::OUTPUTS_ENABLED, diagnostic::PINOUT_CONFIRMED);
   status();
 }
 void loop() {
   const uint32_t now = millis();
   if (attached) {
-    if (!permitNow()) stopOutput("enable or motor supply lost; RESET then ARM", true);
+    if (!permitNow()) stopOutput("enable lost; RESET then ARM", true);
     else if (uint32_t(now-lastLoop) > diagnostic::MAX_LOOP_GAP_MS) stopOutput("late control loop", true);
-    else if (uint32_t(now-lastAction) >= diagnostic::INACTIVITY_MS) stopOutput("10 s command inactivity", false);
+    else if (uint32_t(now-lastAction) >= diagnostic::INACTIVITY_MS) stopOutput("command inactivity", false);
     else if (uint32_t(now-lastWrite) >= 20) {
       const uint16_t step = uint16_t(diagnostic::RATE_US_PER_SECOND * 20U / 1000U);
       uint16_t next = currentUs;
