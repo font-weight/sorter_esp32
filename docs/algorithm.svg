@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="165mm" height="173mm" viewBox="0 0 468 491" role="img" aria-labelledby="title desc">
+<title id="title">Алгоритм программы сортировки деталей</title>
+<desc id="desc">Загрузка позы, ожидание разрешения и пуска, получение кадра, выбор детали, боковой захват, перенос и проверка исчезновения. Соединители 1 и 2 обозначают возврат к ожиданию пуска и к оценке уже полученного кадра; соединитель 3 продолжает алгоритм в правой колонке.</desc>
+<rect x="66.28740157480314" y="5.0" width="105" height="24" rx="12.0" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="118.78740157480314" y="21.620000000000005" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">Начало</text>
+<polyline points="118.78740157480314,29 118.78740157480314,46" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="116.70304756265708,41.455171251625586 118.78740157480314,46 120.8717555869492,41.455171251625586" fill="none" stroke="#000" stroke-width="0.8"/>
+<rect x="21.78740157480314" y="46.0" width="194" height="64" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="118.78740157480314" y="68.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">Загрузить позу из NVS;</text>
+<text x="118.78740157480314" y="82.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">дождаться ENABLE;</text>
+<text x="118.78740157480314" y="96.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">восстановить удержание</text>
+<polyline points="118.78740157480314,110 118.78740157480314,124" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="116.70304756265708,119.45517125162559 118.78740157480314,124 120.8717555869492,119.45517125162559" fill="none" stroke="#000" stroke-width="0.8"/>
+<circle cx="118.78740157480314" cy="133" r="9" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="118.78740157480314" y="137.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">1</text>
+<polyline points="118.78740157480314,142 118.78740157480314,153" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="116.70304756265708,148.4551712516256 118.78740157480314,153 120.8717555869492,148.4551712516256" fill="none" stroke="#000" stroke-width="0.8"/>
+<rect x="21.78740157480314" y="153.0" width="194" height="44" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="118.78740157480314" y="172.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">Ожидать SORT или</text>
+<text x="118.78740157480314" y="186.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">новое нажатие кнопки</text>
+<polyline points="118.78740157480314,197 118.78740157480314,219" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="116.70304756265708,214.4551712516256 118.78740157480314,219 120.8717555869492,214.4551712516256" fill="none" stroke="#000" stroke-width="0.8"/>
+<rect x="21.78740157480314" y="219.0" width="194" height="66" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="118.78740157480314" y="242.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">При необходимости</text>
+<text x="118.78740157480314" y="256.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">восстановить удержание;</text>
+<text x="118.78740157480314" y="270.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">PARK и кадр с подсветкой</text>
+<polyline points="118.78740157480314,285 118.78740157480314,297" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="116.70304756265708,292.4551712516256 118.78740157480314,297 120.8717555869492,292.4551712516256" fill="none" stroke="#000" stroke-width="0.8"/>
+<circle cx="118.78740157480314" cy="306" r="9" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="118.78740157480314" y="310.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">2</text>
+<polyline points="118.78740157480314,315 118.78740157480314,322" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="116.70304756265708,317.4551712516256 118.78740157480314,322 120.8717555869492,317.4551712516256" fill="none" stroke="#000" stroke-width="0.8"/>
+<polygon points="118.78740157480314,322.0 202.78740157480314,357 118.78740157480314,392.0 34.78740157480314,357" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="118.78740157480314" y="354.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">Результат</text>
+<text x="118.78740157480314" y="368.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">кадра</text>
+<polyline points="118.78740157480314,392 118.78740157480314,427" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="116.70304756265708,422.45517125162553 118.78740157480314,427 120.8717555869492,422.45517125162553" fill="none" stroke="#000" stroke-width="0.8"/>
+<text x="146.78740157480314" y="413.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">Ошибка</text>
+<rect x="21.78740157480314" y="427.0" width="194" height="62" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="118.78740157480314" y="448.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">Остановить цикл;</text>
+<text x="118.78740157480314" y="462.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">сообщить об ошибке;</text>
+<text x="118.78740157480314" y="476.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">ждать нового пуска</text>
+<polyline points="21.78740157480314,458 6.787401574803141,458 6.787401574803141,133 109.78740157480314,133" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="105.24257282642873,135.08435401214606 109.78740157480314,133 105.24257282642873,130.91564598785394" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="34.78740157480314,357 17.78740157480314,357 17.78740157480314,133 109.78740157480314,133" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="105.24257282642873,135.08435401214606 109.78740157480314,133 105.24257282642873,130.91564598785394" fill="none" stroke="#000" stroke-width="0.8"/>
+<text x="54.78740157480314" y="338.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">Пусто</text>
+<polyline points="202.78740157480314,357 229.78740157480314,357" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="225.24257282642873,359.08435401214604 229.78740157480314,357 225.24257282642873,354.91564598785396" fill="none" stroke="#000" stroke-width="0.8"/>
+<text x="224.78740157480314" y="338.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">Детали</text>
+<circle cx="238.78740157480314" cy="357" r="9" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="238.78740157480314" y="361.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">3</text>
+<circle cx="352.78740157480314" cy="17" r="9" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="352.78740157480314" y="21.620000000000005" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">3</text>
+<polyline points="352.78740157480314,26 352.78740157480314,45" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="350.7030475626571,40.455171251625586 352.78740157480314,45 354.8717555869492,40.455171251625586" fill="none" stroke="#000" stroke-width="0.8"/>
+<rect x="255.78740157480314" y="45.0" width="194" height="56" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="352.78740157480314" y="63.620000000000005" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">Выбрать деталь</text>
+<text x="352.78740157480314" y="77.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">по проверенной карте</text>
+<text x="352.78740157480314" y="91.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">координат</text>
+<polyline points="352.78740157480314,101 352.78740157480314,122" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="350.7030475626571,117.45517125162559 352.78740157480314,122 354.8717555869492,117.45517125162559" fill="none" stroke="#000" stroke-width="0.8"/>
+<rect x="255.78740157480314" y="122.0" width="194" height="52" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="352.78740157480314" y="145.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">Подвести захват сбоку</text>
+<text x="352.78740157480314" y="159.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">и захватить деталь</text>
+<polyline points="352.78740157480314,174 352.78740157480314,195" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="350.7030475626571,190.4551712516256 352.78740157480314,195 354.8717555869492,190.4551712516256" fill="none" stroke="#000" stroke-width="0.8"/>
+<rect x="255.78740157480314" y="195.0" width="194" height="66" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="352.78740157480314" y="218.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">Поднять и перенести</text>
+<text x="352.78740157480314" y="232.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">в лоток нужного цвета;</text>
+<text x="352.78740157480314" y="246.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">вернуться в PARK</text>
+<polyline points="352.78740157480314,261 352.78740157480314,282" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="350.7030475626571,277.4551712516256 352.78740157480314,282 354.8717555869492,277.4551712516256" fill="none" stroke="#000" stroke-width="0.8"/>
+<rect x="255.78740157480314" y="282.0" width="194" height="44" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="352.78740157480314" y="301.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">Получить свежий кадр</text>
+<text x="352.78740157480314" y="315.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">для проверки</text>
+<polyline points="352.78740157480314,326 352.78740157480314,350" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="350.7030475626571,345.4551712516256 352.78740157480314,350 354.8717555869492,345.4551712516256" fill="none" stroke="#000" stroke-width="0.8"/>
+<polygon points="352.78740157480314,350.0 435.78740157480314,381 352.78740157480314,412.0 269.78740157480314,381" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="352.78740157480314" y="378.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">Деталь</text>
+<text x="352.78740157480314" y="392.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">исчезла?</text>
+<polyline points="352.78740157480314,412 352.78740157480314,458 215.78740157480314,458" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="220.33223032317755,455.91564598785396 215.78740157480314,458 220.33223032317755,460.08435401214604" fill="none" stroke="#000" stroke-width="0.8"/>
+<text x="370.78740157480314" y="438.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">Нет</text>
+<polyline points="435.78740157480314,381 447.78740157480314,381" fill="none" stroke="#000" stroke-width="0.8"/>
+<polyline points="443.24257282642867,383.08435401214604 447.78740157480314,381 443.24257282642867,378.91564598785396" fill="none" stroke="#000" stroke-width="0.8"/>
+<text x="448.78740157480314" y="362.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">Да</text>
+<circle cx="456.78740157480314" cy="381" r="9" fill="white" stroke="black" stroke-width="0.8"/>
+<text x="456.78740157480314" y="385.62" text-anchor="middle" font-family="Times New Roman" font-size="14" font-weight="normal">2</text>
+</svg>

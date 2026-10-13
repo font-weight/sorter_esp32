@@ -5,7 +5,7 @@
 #include <string>
 #include <algorithm>
 using std::min;
-constexpr int HIGH=1, LOW=0, INPUT=0, OUTPUT=1, INPUT_PULLDOWN=2, FALLING=3;
+constexpr int HIGH=1, LOW=0, INPUT=0, OUTPUT=1, INPUT_PULLDOWN=2, FALLING=3, INPUT_PULLUP=4;
 #define ARDUINO_ISR_ATTR
 #define SERIAL_8N1 0
 namespace fakehw {

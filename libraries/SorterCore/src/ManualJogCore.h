@@ -1,9 +1,14 @@
 #pragma once
 #include "MotionCalibration.h"
+#define SORTER_MOTION_API_VERSION 4
 
 namespace sorter {
 
-// Commissioning only: no camera, Cartesian inference, automatic route or homing.
+// Supported interpolation range, not the application's selected speed.
+constexpr uint16_t kMinJogRateUsPerSecond = 50;
+constexpr uint16_t kMaxJogRateUsPerSecond = 1000;
+
+// Bounded pulse interpolation; camera coordination and homing are not inferred here.
 struct JogSettings {
   bool outputsEnabled, pinoutConfirmed, limitsConfirmed;
   uint16_t minUs[4], maxUs[4];
@@ -45,14 +50,15 @@ class ManualJogController {
     return outputs_ && elapsed < s_.holdLeaseMs ? s_.holdLeaseMs - elapsed : 0;
   }
   uint32_t sessionRemainingMs(uint32_t now) const {
+    if (outputs_ && !s_.maxSessionMs) return UINT32_MAX; // Explicit unlimited session.
     const uint32_t elapsed = uint32_t(now - started_);
     return outputs_ && elapsed < s_.maxSessionMs ? s_.maxSessionMs - elapsed : 0;
   }
   bool configurationValid() const {
     if (!s_.outputsEnabled || !s_.pinoutConfirmed || !s_.limitsConfirmed ||
-        s_.maxStepUs < 1 || s_.maxStepUs > 100 || s_.rateUsPerSecond < 50 ||
-        s_.rateUsPerSecond > 300 || s_.holdLeaseMs < 1000 || s_.holdLeaseMs > 300000 ||
-        s_.maxSessionMs < s_.holdLeaseMs || s_.maxSessionMs > 1800000 ||
+        s_.maxStepUs < 1 || s_.maxStepUs > 100 || s_.rateUsPerSecond < kMinJogRateUsPerSecond ||
+        s_.rateUsPerSecond > kMaxJogRateUsPerSecond || s_.holdLeaseMs < 1000 || s_.holdLeaseMs > 300000 ||
+        (s_.maxSessionMs && (s_.maxSessionMs < s_.holdLeaseMs || s_.maxSessionMs > 1800000)) ||
         s_.maxLoopGapMs < 20 || s_.maxLoopGapMs > 250) return false;
     for (uint8_t j = 0; j < 4; ++j)
       if (s_.minUs[j] < 500 || s_.maxUs[j] > 2500 || s_.minUs[j] >= s_.maxUs[j]) return false;
@@ -185,7 +191,7 @@ class ManualJogController {
     if (!outputs_) return false;
     if (!permit || !supply) { stop(JogError::Permit, true); return false; }
     if (uint32_t(now-loop_) > s_.maxLoopGapMs) { stop(JogError::LoopLate, true); return false; }
-    if (uint32_t(now-started_) >= s_.maxSessionMs) { stop(JogError::SessionExpired, true); return false; }
+    if (s_.maxSessionMs && uint32_t(now-started_) >= s_.maxSessionMs) { stop(JogError::SessionExpired, true); return false; }
     if (uint32_t(now-action_) >= s_.holdLeaseMs) { stop(JogError::LeaseExpired, false); return false; }
     return true;
   }

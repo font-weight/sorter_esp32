@@ -123,8 +123,8 @@ void extendedSettingsRemainBounded() {
   s.maxSessionMs = 1800001; assert(!c.configurationValid());
   s.maxSessionMs = 299999; assert(!c.configurationValid());
   s.maxSessionMs = 1800000;
-  s.rateUsPerSecond = 300; assert(c.configurationValid());
-  s.rateUsPerSecond = 301; assert(!c.configurationValid());
+  s.rateUsPerSecond = 1000; assert(c.configurationValid());
+  s.rateUsPerSecond = 1001; assert(!c.configurationValid());
   s.rateUsPerSecond = 49; assert(!c.configurationValid());
   s.rateUsPerSecond = 100;
   s.maxLoopGapMs = 251; assert(!c.configurationValid());
@@ -265,7 +265,7 @@ void absolutePoseIsAtomicAndNotQueued() {
 void absolutePoseIsSynchronousAndRateLimited() {
   const JointPose target = {{2101,1200,1600,1500}};
   // Durations not divisible by 20 ms, fractional channel changes and rollover.
-  for (uint16_t rate : {uint16_t(50),uint16_t(75),uint16_t(100)}) {
+  for (uint16_t rate : {uint16_t(50),uint16_t(75),uint16_t(100),uint16_t(500),uint16_t(1000)}) {
     for (uint32_t start : {0U,UINT32_MAX-500U}) {
       JogSettings s = travelSettings(); s.rateUsPerSecond = rate;
       FakeJogIO io; ManualJogController c(s,io); prepare(c,start);

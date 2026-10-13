@@ -155,27 +155,15 @@ void handleConsole() {
   const char* cmd = console.line();
   if (!strcmp(cmd, "STATUS")) { printStatus(); return; }
   if (!strcmp(cmd, "HELP")) {
-    Serial.println("STATUS, STATS, SCAN (pixel blobs), SCAN_MM (calibrated millimetres), CAPTURE (binary), LED ON, LED OFF, HELP; CAPTURE/SCAN/SCAN_MM blocked if UART enabled");
+    Serial.println("STATUS, SCAN (pixel blobs), SCAN_MM (calibrated millimetres), HELP; SCAN/SCAN_MM require UART disabled");
     return;
-  }
-  if (!strcmp(cmd, "LED ON") || !strcmp(cmd, "LED OFF")) {
-    if (!CAMERA_PROFILE_CONFIRMED) { Serial.println("ERROR LED_DISABLED"); return; }
-    digitalWrite(camera_board::FLASH_LED_PIN, !strcmp(cmd, "LED ON") ? HIGH : LOW);
-    Serial.print("OK "); Serial.println(cmd);
-    return;
-  }
-  if (!cameraReady) { Serial.println("ERROR CAMERA_DISABLED"); return; }
-  // Raw capture takes several seconds over USB-UART. It must not delay a live
-  // controller transaction. Use a build with UART disabled for calibration.
-  if (uartReady) { Serial.println("ERROR USB_CAMERA_COMMAND_REQUIRES_UART_DISABLED"); return; }
-  if (!strcmp(cmd, "CAPTURE")) { camera_board::captureRaw(WIDTH, HEIGHT); return; }
-  if (!strcmp(cmd, "STATS")) {
-    camera_fb_t* fb = camera_board::freshFrame(WIDTH, HEIGHT);
-    if (!fb) { Serial.println("ERROR CAPTURE_FAILED"); return; }
-    camera_board::printStats(fb); esp_camera_fb_return(fb); return;
   }
   const bool scanMillimeters = !strcmp(cmd, "SCAN_MM");
-  if (!strcmp(cmd, "SCAN") || scanMillimeters) {
+  if (strcmp(cmd, "SCAN") && !scanMillimeters) { Serial.println("ERROR UNKNOWN_COMMAND"); return; }
+  if (!cameraReady) { Serial.println("ERROR CAMERA_DISABLED"); return; }
+  // Console scans must not delay a live controller transaction.
+  if (uartReady) { Serial.println("ERROR USB_CAMERA_COMMAND_REQUIRES_UART_DISABLED"); return; }
+  {
     if (scanMillimeters && !calibrationReady) {
       Serial.println("ERROR CALIBRATION_INVALID: check STATUS and GeneratedCalibration.h"); return;
     }
@@ -214,9 +202,7 @@ void handleConsole() {
         Serial.printf("SCAN_MM mapped=%u skipped=%u ID=%u\n", unsigned(mapped),
                       unsigned(found.count - mapped), unsigned(sorter_calibration::CALIBRATION_ID));
     }
-    return;
   }
-  Serial.println("ERROR UNKNOWN_COMMAND");
 }
 
 void setup() {
@@ -225,7 +211,7 @@ void setup() {
     digitalWrite(camera_board::FLASH_LED_PIN, LOW);
   }
   Serial.begin(USB_BAUD); Serial.setDebugOutput(false); delay(400);
-  Serial.println("SORTER CAMERA NODE; classic ESP32-CAM example; physical calibration required");
+  Serial.println("SORTER CAMERA NODE; ESP32-CAM OV2640; red/blue sorting");
   cameraBoot = esp_random(); if (!cameraBoot) cameraBoot = 1;
   camera_board::printHardware();
   cameraReady = camera_board::start(CAMERA_PROFILE_CONFIRMED, FRAMESIZE_QVGA);
@@ -254,7 +240,7 @@ void setup() {
     }
   }
   if (CAMERA_PROFILE_CONFIRMED && CAMERA_UART_PINS_CONFIRMED) {
-    // Only the reviewed example pair is accepted. SD, flash, boot-strapping,
+    // Only the configured pair is accepted. SD, flash, boot-strapping,
     // camera, UART0 and PSRAM pins must not be silently substituted here.
     if (CAMERA_UART_RX == 14 && CAMERA_UART_TX == 13) {
       cameraUart.setRxBufferSize(2*sorter::kMaxFrame);
@@ -263,7 +249,7 @@ void setup() {
     } else Serial.println("ERROR UART_PIN_PROFILE_UNSUPPORTED");
   }
   printStatus();
-  Serial.println("Commands: STATUS, STATS, SCAN, SCAN_MM, CAPTURE, LED ON, LED OFF, HELP");
+  Serial.println("Commands: STATUS, SCAN, SCAN_MM, HELP");
 }
 
 void loop() {

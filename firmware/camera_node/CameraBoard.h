@@ -3,10 +3,8 @@
 #include <esp_camera.h>
 #include <esp_timer.h>
 #include <esp_system.h>
-#include <ColorDetector.h>
 
-// AI-Thinker classic ESP32-CAM ONLY. The user has not confirmed this pin map.
-// This header is duplicated in camera_node so both sketches remain standalone.
+// AI-Thinker classic ESP32-CAM with OV2640 and PSRAM.
 namespace camera_board {
 
 constexpr int FLASH_LED_PIN = 4; // AI-Thinker ESP32-CAM flash LED (active HIGH).
@@ -83,37 +81,8 @@ inline void printHardware() {
   Serial.printf("SDK %s\n", ESP.getSdkVersion());
 }
 
-inline void printStats(const camera_fb_t* fb) {
-  uint64_t r = 0, g = 0, b = 0;
-  uint32_t dark = 0, bright = 0;
-  uint32_t hash = 2166136261u;
-  const size_t pixels = fb->width*fb->height;
-  for (size_t i = 0; i < pixels; ++i) {
-    const sorter::Rgb rgb = sorter::decodeRgb565BE(fb->buf + 2*i);
-    r += rgb.r; g += rgb.g; b += rgb.b;
-    if (rgb.r < 12 && rgb.g < 12 && rgb.b < 12) ++dark;
-    if (rgb.r > 243 && rgb.g > 243 && rgb.b > 243) ++bright;
-    hash = (hash ^ fb->buf[2*i])*16777619u;
-    hash = (hash ^ fb->buf[2*i+1])*16777619u;
-  }
-  Serial.printf("FRAME %ux%u bytes=%u meanRGB=%.1f,%.1f,%.1f dark_pct=%.1f bright_pct=%.1f hash=%08X\n",
-                unsigned(fb->width), unsigned(fb->height), unsigned(fb->len),
-                double(r)/pixels, double(g)/pixels, double(b)/pixels,
-                100.0*dark/pixels, 100.0*bright/pixels, unsigned(hash));
-}
-
-inline void captureRaw(uint16_t width, uint16_t height) {
-  camera_fb_t* fb = freshFrame(width, height);
-  if (!fb) { Serial.println("ERROR CAPTURE_FAILED"); return; }
-  Serial.printf("RGB565BE %u %u %u\n", width, height, unsigned(fb->len));
-  Serial.write(fb->buf, fb->len);
-  Serial.print("\nEND\n");
-  Serial.flush();
-  esp_camera_fb_return(fb);
-}
-
 // A bounded USB console. After overflow discard through newline, never execute
-// a truncated command (for example a long line starting with CAPTURE).
+// a truncated command.
 class Console {
  public:
   Console() : size_(0), overflow_(false) { line_[0] = '\0'; }

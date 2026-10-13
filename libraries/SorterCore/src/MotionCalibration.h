@@ -186,35 +186,4 @@ inline bool interpolateGrid(const MotionCalibration& c, int32_t x10, int32_t y10
   return poseWithinLimits(result.joints, c) && pointWithinBounds(result.tip, c);
 }
 
-// Deliberately invented demonstration numbers. Never use these as physical calibration.
-inline MotionCalibration exampleVirtualCalibration() {
-  MotionCalibration c = {};
-  c.calibrationId = 1;
-  c.pickMinX10 = -300; c.pickMaxX10 = 300;
-  c.pickMinY10 = 800; c.pickMaxY10 = 1200;
-  c.lowZ10 = 30; c.highZ10 = 500;
-  c.minX10 = -1000; c.maxX10 = 1000;
-  c.minY10 = -200; c.maxY10 = 1600; c.minZ10 = 20; c.maxZ10 = 1200;
-  c.openUs = 1350; c.closedUs = 1550;
-  for (size_t j = 0; j < 4; ++j) {
-    c.pulseMin[j] = 1000; c.pulseMax[j] = 2000;
-    c.maxRateUsPerSecond[j] = 250; c.maxAccelerationUsPerSecond2[j] = 500;
-  }
-  const JointPose low[4] = {{{1400,1600,1500,1350}}, {{1600,1600,1500,1350}},
-                           {{1400,1700,1450,1350}}, {{1600,1700,1450,1350}}};
-  const JointPose high[4] = {{{1400,1400,1500,1350}}, {{1600,1400,1500,1350}},
-                            {{1400,1500,1450,1350}}, {{1600,1500,1450,1350}}};
-  for (size_t i = 0; i < 4; ++i) { c.grid[i].lowOpen = low[i]; c.grid[i].highOpen = high[i]; }
-  c.parkOpen = {{{1500,1300,1500,1350}}, {0,400,600}, false};
-  c.hubOpen = {{{1500,1400,1500,1350}}, {0,700,500}, false};
-  for (size_t i = 0; i < kColorCount; ++i) {
-    // Keep the former red and blue demo positions; omit the middle green bin.
-    c.binHighOpen[i] = {{{uint16_t(1100 + 800*i),1400,1550,1350}},
-                        {int32_t(-800 + int32_t(i)*1600),500,500}, false};
-    c.binDropOpen[i] = c.binHighOpen[i];
-    c.binDropOpen[i].joints.us[1] = 1500; c.binDropOpen[i].tip.z10 = 300;
-  }
-  return c;
-}
-
 } // namespace sorter

@@ -2,9 +2,8 @@
 #include <PartClasses.h>
 #include <ColorDetector.h>
 
-// Confirm each profile only after the corresponding physical check.
+// Confirmed profiles for the assembled sorter.
 constexpr bool CAMERA_PROFILE_CONFIRMED = true;
-// Enable the specified UART profile for the next live-link commissioning step.
 constexpr bool CAMERA_UART_PINS_CONFIRMED = true;
 // Use the owner's previously checked red/blue thresholds and camera mapping.
 constexpr bool VISION_CONFIG_CONFIRMED = true;
@@ -17,8 +16,8 @@ constexpr int CAMERA_UART_TX = 13; // Project KiCad: camera TX13 -> controller R
 constexpr bool SCAN_FLASH_ENABLED = true;
 constexpr unsigned SCAN_FLASH_SETTLE_MS = 100;
 
-// Fixed OV2640 settings: starting values, not measured values. CAPTURE and
-// recognition use the SAME settings. Recalibrate after changing these.
+// Fixed OV2640 settings used with the current thresholds and calibration.
+// Recalibrate after changing these.
 constexpr int SENSOR_EXPOSURE = 70; // 0..1200
 constexpr int SENSOR_GAIN = 0;       // 0..30
 constexpr int SENSOR_WB_MODE = 1;    // 1 sunny, 2 cloudy, 3 office, 4 home
@@ -35,6 +34,6 @@ static_assert(sizeof(COLOR_RANGES)/sizeof(COLOR_RANGES[0]) == sorter::kColorCoun
               "The sorter must have exactly two color ranges");
 const sorter::DetectorConfig DETECTOR_CONFIG = {
   COLOR_RANGES, sizeof(COLOR_RANGES)/sizeof(COLOR_RANGES[0]),
-  {8, 8, 312, 232}, // half-open ROI in 320x240 frame; set to your tray
+  {8, 8, 312, 232}, // half-open ROI in the calibrated 320x240 frame
   40, 6000, true   // pixel area range and ROI-edge rejection
 };
